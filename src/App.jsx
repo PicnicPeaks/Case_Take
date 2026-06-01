@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { saveCase, saveFeedback } from './supabase.js'
+import { saveCase } from './supabase.js'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -122,8 +122,8 @@ const getSystemPrompt = (preForm = null, scriptedIdx = 0) => {
 function buildSystemPrompt(today, preForm, scriptedIdx) {
   const needsJurisdictionReview = preForm?.jurisdictionStatus === 'review'
   const preCollected = preForm ? `
-PRE-COLLECTED VIA INTAKE FORM (do not ask for any of this again):
-- Employment type: W-2 employee (confirmed${preForm.employmentType === 'unsure' ? ' — client was unsure, verify during intake' : ''})
+PRE-COLLECTED VIA INTAKE FORM (do not re-ask, re-confirm, or probe any of these — they are already settled):
+- Employment type: ${preForm.employmentType === 'w2' ? 'W-2 employee (confirmed — do NOT ask about this again)' : preForm.employmentType === 'unsure' ? 'Unknown — client was unsure, gently verify during the Employment topic only' : 'W-2 employee (confirmed)'}
 - Employer type: ${preForm.governmentType === 'state-local' ? 'State or local government' : preForm.governmentType === 'unsure' ? 'Unknown — confirm during intake' : 'Private employer'}
 - Client residence: ${preForm.residenceCity}, ${preForm.residenceState}
 - Injury location: ${preForm.injuryCity}, ${preForm.injuryState}
@@ -166,8 +166,8 @@ RULES:
 PHONE NUMBER VALIDATION (Topic 1):
 Silently validate the phone number. A valid US number has exactly 10 digits. If clearly invalid — wrong digit count or obvious typo — say: "That number doesn't look quite right — could you double-check it for me?" Otherwise accept it and emit <next_question/> when ready.
 
-1099 HARD STOP (Topic 2):
-If the client confirms they are a 1099 independent contractor (not a W-2 employee), warmly inform them the firm can only represent W-2 employees in California workers' compensation cases. Thank them, wish them well, and end the intake. Then output a <case_summary> block reflecting the declination — do NOT emit <next_question/> in this case.
+1099 HARD STOP:
+Employment type was already screened before this interview began. Do NOT re-ask or re-confirm it unless the pre-collected data explicitly says the client was unsure. If it was confirmed as W-2, treat it as settled and move on. Only trigger this stop if the pre-collected data says "unsure" AND the client reveals during the Employment topic that they are in fact a 1099 contractor — in that case, warmly inform them the firm can only represent W-2 employees, thank them, and end the intake with a <case_summary> block reflecting the declination. Do NOT emit <next_question/>.
 
 INTERNAL RED FLAG MONITORING (track silently — never mention to the client):
 - Injury reported to employer AFTER a termination or layoff notice
@@ -225,267 +225,6 @@ VIABILITY SCORING:
 - 40–59 → "Weak": Significant red flags that may undermine the claim
 - 0–39  → "Declined": Multiple serious issues, or client is a 1099 contractor` }
 
-// ─── PDF Print ────────────────────────────────────────────────────────────────
-
-function printSummaryAsPDF(s) {
-  const color = { Strong: '#16a34a', Moderate: '#ca8a04', Weak: '#ea580c', Declined: '#dc2626' }[s.viability_label] ?? '#6b7280'
-  const bg    = { Strong: '#f0fdf4', Moderate: '#fefce8', Weak: '#fff7ed', Declined: '#fef2f2' }[s.viability_label] ?? '#f9fafb'
-
-  const val  = (v) => v && v !== 'N/A' ? `<span>${esc(v)}</span>` : `<span style="color:#9ca3af">—</span>`
-  const esc  = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-
-  const field = (label, value) => `
-    <div class="field">
-      <div class="field-label">${esc(label)}</div>
-      <div class="field-value">${val(value)}</div>
-    </div>`
-
-  const grid = (pairs) => `<div class="grid">${pairs.map(([l,v]) => field(l,v)).join('')}</div>`
-
-  const section = (icon, title, body) => `
-    <div class="section">
-      <div class="section-header"><span class="section-icon">${icon}</span>${esc(title)}</div>
-      ${body}
-    </div>`
-
-  const flags = Array.isArray(s.red_flags) && s.red_flags.length
-    ? `<div class="flags">${s.red_flags.map(f => `<div class="flag">⚑ ${esc(f)}</div>`).join('')}</div>`
-    : `<div style="color:#9ca3af;font-size:13px">None detected</div>`
-
-  // SVG donut
-  const r = 44, circ = 2 * Math.PI * r
-  const offset = circ - ((s.viability_score ?? 0) / 100) * circ
-  const donut = `
-    <svg width="110" height="110" viewBox="0 0 110 110">
-      <circle cx="55" cy="55" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="11"/>
-      <circle cx="55" cy="55" r="${r}" fill="none" stroke="${color}" stroke-width="11"
-        stroke-linecap="round"
-        stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
-        transform="rotate(-90 55 55)"/>
-      <text x="55" y="50" text-anchor="middle" font-size="22" font-weight="800" fill="${color}" font-family="system-ui,sans-serif">${s.viability_score ?? 0}</text>
-      <text x="55" y="64" text-anchor="middle" font-size="10" fill="#9ca3af" font-family="system-ui,sans-serif">out of 100</text>
-    </svg>`
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Intake Report — ${esc(s.claimant ?? 'Unknown')}</title>
-<style>
-  @page { size: letter; margin: 0.75in 0.85in; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui,-apple-system,'Segoe UI',sans-serif; font-size: 13px; color: #111827; line-height: 1.5; }
-
-  .letterhead { background: #1a2e4a; color: white; padding: 22px 28px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-  .letterhead-left .firm { font-size: 10px; font-weight: 700; opacity: 0.6; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
-  .letterhead-left .title { font-size: 20px; font-weight: 900; letter-spacing: -0.4px; }
-  .letterhead-left .sub { font-size: 12px; opacity: 0.7; margin-top: 3px; }
-  .letterhead-right { text-align: right; font-size: 11px; opacity: 0.65; line-height: 1.7; }
-
-  .viability-box { background: ${bg}; border: 1.5px solid ${color}30; border-radius: 10px; padding: 16px 20px; display: flex; gap: 20px; align-items: center; margin-bottom: 4px; }
-  .viability-text .badge { display: inline-block; background: ${color}; color: white; border-radius: 20px; padding: 2px 13px; font-weight: 800; font-size: 13px; margin-bottom: 7px; }
-  .viability-text .rec { font-size: 13px; color: #374151; line-height: 1.65; max-width: 420px; }
-
-  .section { margin-top: 18px; page-break-inside: avoid; }
-  .section-header { display: flex; align-items: center; gap: 7px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 11.5px; color: #1a2e4a; text-transform: uppercase; letter-spacing: 0.07em; }
-  .section-icon { font-size: 13px; }
-
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
-  .field { margin-bottom: 9px; }
-  .field-label { font-size: 10.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-  .field-value { font-size: 13px; color: #111827; }
-  .field-full { margin-bottom: 9px; }
-  .field-full .field-label { font-size: 10.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-  .field-full .field-value { font-size: 13px; color: #111827; }
-
-  .flags { display: flex; flex-direction: column; gap: 5px; }
-  .flag { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 6px 11px; font-size: 12.5px; color: #9a3412; }
-
-  .notes-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 11px 14px; font-size: 13px; color: #78350f; line-height: 1.7; }
-
-  .footer { margin-top: 28px; border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 10.5px; color: #9ca3af; display: flex; justify-content: space-between; }
-
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-</style>
-</head>
-<body>
-
-<div class="letterhead">
-  <div class="letterhead-left">
-    <div class="firm">California Workers' Compensation</div>
-    <div class="title">Intake Screening Report</div>
-    <div class="sub">${esc(s.claimant ?? '—')}${s.intake_date ? ' &nbsp;·&nbsp; ' + esc(s.intake_date) : ''}</div>
-  </div>
-  <div class="letterhead-right">
-    Confidential — Attorney Work Product<br/>
-    For Internal Use Only
-  </div>
-</div>
-
-${section('📊', 'Viability Assessment', `
-  <div class="viability-box">
-    ${donut}
-    <div class="viability-text">
-      <div class="badge">${esc(s.viability_label ?? '—')}</div>
-      <div class="rec">${esc(s.recommendation ?? '—')}</div>
-    </div>
-  </div>`)}
-
-${section('⚠️', 'Red Flags', flags)}
-
-${section('👤', 'Client Information', grid([
-  ['Full Name',           s.claimant],
-  ['Phone',               s.phone],
-  ['Email',               s.email],
-  ['Residence',           s.residence],
-  ['Injury Jurisdiction', s.injury_jurisdiction],
-  ['Intake Date',         s.intake_date],
-]))}
-
-${section('🏢', 'Employment', grid([
-  ['Employer',        s.employer],
-  ['Job Title',       s.job_title],
-  ['Employment Type', s.employment_type],
-  ['Hours / Week',    s.hours_per_week],
-  ['', ''],
-  ['', ''],
-]))}
-
-${section('🩹', 'Injury Details', `
-  ${grid([
-    ['Date of Injury', s.injury_date],
-    ['Time of Injury', s.injury_time],
-    ['Location',       s.injury_location],
-    ['Body Part(s)',   s.body_part],
-    ['Current Status', s.current_status],
-    ['', ''],
-  ])}
-  <div class="field-full">
-    <div class="field-label">Mechanism / Description</div>
-    <div class="field-value">${val(s.injury_description)}</div>
-  </div>
-  ${s.termination_details && s.termination_details !== 'N/A' ? `
-  <div class="field-full">
-    <div class="field-label">Termination Details</div>
-    <div class="field-value">${val(s.termination_details)}</div>
-  </div>` : ''}`)}
-
-${section('📋', 'Reporting', grid([
-  ['Reported to Employer', s.reported_to_employer],
-  ['Written Report Filed', s.written_report_filed],
-]))}
-
-${section('🏥', 'Medical Treatment', grid([
-  ['Facility',        s.medical_facility],
-  ['Treating Doctor', s.treating_doctor],
-  ['First Visit',     s.first_treatment_date],
-  ['', ''],
-]))}
-
-${section('👥', 'Witnesses', `
-  <div class="field-full">
-    <div class="field-label">Witness Information</div>
-    <div class="field-value">${val(s.witnesses)}</div>
-  </div>`)}
-
-${section('📁', 'Prior Injury History', `
-  <div class="field-full">
-    <div class="field-label">Prior Injuries / Pre-existing Conditions</div>
-    <div class="field-value">${val(s.prior_injuries)}</div>
-  </div>`)}
-
-${section('🎙️', 'Recorded Statements', `
-  ${grid([['Statement Given', s.recorded_statement], ['', '']])}
-  ${s.recorded_statement_details && s.recorded_statement_details !== 'N/A' ? `
-  <div class="field-full">
-    <div class="field-label">Details</div>
-    <div class="field-value">${val(s.recorded_statement_details)}</div>
-  </div>` : ''}`)}
-
-${s.notes ? section('📝', 'Attorney Notes', `<div class="notes-box">${esc(s.notes)}</div>`) : ''}
-
-<div class="footer">
-  <span>CaseTake — Confidential Intake Report &nbsp;·&nbsp; © ${new Date().getFullYear()} Picnic Peaks LLC. All rights reserved.</span>
-  <span>Generated ${new Date().toLocaleString()}</span>
-</div>
-
-</body>
-</html>`
-
-  // Write to a hidden iframe, let html2pdf render it to a downloadable PDF blob
-  const loadHtml2pdf = () => new Promise((resolve, reject) => {
-    if (window.html2pdf) return resolve(window.html2pdf)
-    const s = document.createElement('script')
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
-    s.onload = () => resolve(window.html2pdf)
-    s.onerror = reject
-    document.head.appendChild(s)
-  })
-
-  loadHtml2pdf().then(h2p => {
-    const container = document.createElement('div')
-    container.innerHTML = html
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:816px;background:white;'
-    document.body.appendChild(container)
-
-    const filename = `CaseTake-${(s.claimant ?? 'Report').replace(/\s+/g,'-')}-${s.intake_date ?? new Date().toISOString().slice(0,10)}.pdf`
-    h2p(container, {
-      margin: [0.75, 0.85],
-      filename,
-      image:    { type: 'jpeg', quality: 0.97 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF:    { unit: 'in', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css'] },
-    }).save().then(() => document.body.removeChild(container))
-  })
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function viabilityColor(label) {
-  return { Strong: '#16a34a', Moderate: '#ca8a04', Weak: '#ea580c', Declined: '#dc2626' }[label] ?? '#6b7280'
-}
-
-function viabilityBg(label) {
-  return { Strong: '#f0fdf4', Moderate: '#fefce8', Weak: '#fff7ed', Declined: '#fef2f2' }[label] ?? '#f9fafb'
-}
-
-function extractCaseSummary(text) {
-  const match = text.match(/<case_summary>([\s\S]*?)<\/case_summary>/)
-  if (!match) return { displayText: text, summary: null }
-  try {
-    const summary = JSON.parse(match[1].trim())
-    const displayText = text.replace(/<case_summary>[\s\S]*?<\/case_summary>/, '').trim()
-    return { displayText, summary }
-  } catch {
-    return { displayText: text, summary: null }
-  }
-}
-
-// ─── DonutChart ───────────────────────────────────────────────────────────────
-
-function DonutChart({ score, label }) {
-  const r = 52
-  const circ = 2 * Math.PI * r
-  const color = viabilityColor(label)
-  return (
-    <svg width="136" height="136" viewBox="0 0 136 136" aria-label={`Viability score: ${score} out of 100`}>
-      <circle cx="68" cy="68" r={r} fill="none" stroke="#e5e7eb" strokeWidth="13" />
-      <circle
-        cx="68" cy="68" r={r} fill="none"
-        stroke={color} strokeWidth="13" strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ - (score / 100) * circ}
-        transform="rotate(-90 68 68)"
-        style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)' }}
-      />
-      <text x="68" y="62" textAnchor="middle" fontSize="28" fontWeight="800" fill={color} fontFamily="inherit">{score}</text>
-      <text x="68" y="80" textAnchor="middle" fontSize="11" fill="#9ca3af" fontFamily="inherit">out of 100</text>
-    </svg>
-  )
-}
 
 // ─── TypingIndicator ──────────────────────────────────────────────────────────
 
@@ -684,123 +423,6 @@ function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
           >✕</button>
         </div>
       )}
-    </div>
-  )
-}
-
-// ─── FeedbackLogModal ─────────────────────────────────────────────────────────
-
-function FeedbackLogModal({ feedback, onClose, onClear }) {
-  const [copied, setCopied] = useState(false)
-
-  const copyJSON = () => {
-    navigator.clipboard.writeText(JSON.stringify(feedback, null, 2))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const download = () => {
-    const blob = new Blob([JSON.stringify(feedback, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `casetake-feedback-${new Date().toISOString().slice(0,10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  return (
-    <div
-      onClick={e => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: 16, backdropFilter: 'blur(2px)',
-      }}
-    >
-      <div style={{
-        background: 'white', borderRadius: 14, width: '100%', maxWidth: 600,
-        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
-        boxShadow: '0 24px 60px rgba(0,0,0,0.25)', animation: 'msgFadeIn .2s ease',
-      }}>
-        {/* Header */}
-        <div style={{
-          background: NAVY, color: 'white', padding: '16px 20px',
-          borderRadius: '14px 14px 0 0',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Tester Feedback Log</div>
-            <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>{feedback.length} entr{feedback.length === 1 ? 'y' : 'ies'} collected</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={copyJSON} style={{
-              background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: 7, padding: '5px 11px', fontSize: 12, cursor: 'pointer', fontWeight: 600,
-            }}>{copied ? '✓ Copied' : 'Copy JSON'}</button>
-            <button onClick={download} style={{
-              background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: 7, padding: '5px 11px', fontSize: 12, cursor: 'pointer', fontWeight: 600,
-            }}>⬇ Download</button>
-            <button onClick={onClose} style={{
-              background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
-              width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 16,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>×</button>
-          </div>
-        </div>
-
-        {/* List */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
-          {feedback.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px 0', fontSize: 14 }}>
-              No feedback yet — thumbs up/down appear below each AI response.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...feedback].reverse().map((fb, i) => (
-                <div key={i} style={{
-                  border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px',
-                  background: fb.rating === 'up' ? '#f0fdf4' : '#fff7ed',
-                  borderColor: fb.rating === 'up' ? '#bbf7d0' : '#fed7aa',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ fontSize: 16 }}>{fb.rating === 'up' ? '👍' : '👎'}</span>
-                      <span style={{ fontSize: 11.5, color: '#6b7280' }}>{new Date(fb.timestamp).toLocaleString()}</span>
-                    </div>
-                  </div>
-                  {fb.comment && (
-                    <div style={{ marginTop: 6, fontSize: 13.5, color: '#374151', fontStyle: 'italic' }}>
-                      "{fb.comment}"
-                    </div>
-                  )}
-                  {fb.snippet && (
-                    <div style={{
-                      marginTop: 8, fontSize: 12.5, color: '#374151', lineHeight: 1.6,
-                      background: 'white', border: '1px solid #e5e7eb',
-                      borderRadius: 6, padding: '8px 11px',
-                      whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                    }}>
-                      {fb.snippet}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        {feedback.length > 0 && (
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              onClick={onClear}
-              style={{ background: 'none', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 7, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}
-            >Clear all feedback</button>
-          </div>
-        )}
-      </div>
     </div>
   )
 }
@@ -1320,229 +942,6 @@ function ScriptedQuestionBubble({ question }) {
   )
 }
 
-// ─── CaseSummaryModal ─────────────────────────────────────────────────────────
-
-function SectionHeader({ icon, title }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      borderBottom: '2px solid #e5e7eb', paddingBottom: 7, marginBottom: 12, marginTop: 24,
-    }}>
-      <span style={{ fontSize: 15 }}>{icon}</span>
-      <span style={{ fontWeight: 800, fontSize: 13, color: NAVY, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</span>
-    </div>
-  )
-}
-
-function InfoGrid({ rows }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-      {rows.map(([label, value], i) => (
-        <div key={i} style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</div>
-          <div style={{ fontSize: 13.5, color: value ? '#111827' : '#9ca3af', lineHeight: 1.5 }}>{value || '—'}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function InfoBlock({ label, value }) {
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: value ? '#111827' : '#9ca3af', lineHeight: 1.5 }}>{value || '—'}</div>
-    </div>
-  )
-}
-
-function CaseSummaryModal({ summary, onClose }) {
-  if (!summary) return null
-  const color = viabilityColor(summary.viability_label)
-  const bg    = viabilityBg(summary.viability_label)
-
-  const printReport = () => printSummaryAsPDF(summary)
-
-  return (
-    <div
-      role="dialog" aria-modal="true" aria-label="Case Intake Report"
-      onClick={e => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: 16, backdropFilter: 'blur(2px)',
-      }}
-    >
-      <div style={{
-        background: 'white', borderRadius: 16, width: '100%', maxWidth: 740,
-        maxHeight: '93vh', overflowY: 'auto',
-        boxShadow: '0 32px 72px rgba(0,0,0,0.28)',
-        animation: 'msgFadeIn .25s ease',
-      }}>
-
-        {/* ── Report Header ── */}
-        <div style={{
-          background: NAVY, color: 'white',
-          padding: '20px 24px', borderRadius: '16px 16px 0 0',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-                California Workers' Compensation
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.4px' }}>
-                Intake Screening Report
-              </div>
-              <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
-                {summary.claimant || 'Unknown Claimant'}
-                {summary.intake_date ? ` · ${summary.intake_date}` : ''}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={printReport} style={{
-                background: 'rgba(255,255,255,0.13)', color: 'white',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: 7, padding: '5px 11px', fontSize: 12, cursor: 'pointer', fontWeight: 600,
-              }}>🖨 Print</button>
-              <button onClick={onClose} aria-label="Close" style={{
-                background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
-                width: 30, height: 30, borderRadius: '50%', cursor: 'pointer',
-                fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>×</button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: '4px 24px 28px' }}>
-
-          {/* ── Viability Assessment ── */}
-          <SectionHeader icon="📊" title="Viability Assessment" />
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 22,
-            background: bg, border: `1.5px solid ${color}30`,
-            borderRadius: 12, padding: '18px 22px', flexWrap: 'wrap',
-          }}>
-            <DonutChart score={summary.viability_score} label={summary.viability_label} />
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{
-                display: 'inline-block', background: color, color: 'white',
-                borderRadius: 20, padding: '3px 14px', fontWeight: 800, fontSize: 14, marginBottom: 10,
-              }}>{summary.viability_label}</div>
-              <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>
-                {summary.recommendation}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Red Flags ── */}
-          {Array.isArray(summary.red_flags) && summary.red_flags.length > 0 && (
-            <>
-              <SectionHeader icon="⚠️" title="Red Flags Detected" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {summary.red_flags.map((flag, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 9,
-                    background: '#fff7ed', border: '1px solid #fed7aa',
-                    borderRadius: 8, padding: '8px 13px',
-                  }}>
-                    <span style={{ color: '#ea580c', fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚑</span>
-                    <span style={{ fontSize: 13.5, color: '#9a3412', lineHeight: 1.5 }}>{flag}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ── Client Information ── */}
-          <SectionHeader icon="👤" title="Client Information" />
-          <InfoGrid rows={[
-            ['Full Name',          summary.claimant],
-            ['Phone',              summary.phone],
-            ['Email',              summary.email],
-            ['Residence',          summary.residence],
-            ['Injury Jurisdiction',summary.injury_jurisdiction],
-            ['Intake Date',        summary.intake_date],
-          ]} />
-
-          {/* ── Employment ── */}
-          <SectionHeader icon="🏢" title="Employment" />
-          <InfoGrid rows={[
-            ['Employer',         summary.employer],
-            ['Job Title',        summary.job_title],
-            ['Employment Type',  summary.employment_type],
-            ['Hours / Week',     summary.hours_per_week],
-            ['',                 ''],
-            ['',                 ''],
-          ]} />
-
-          {/* ── Injury Details ── */}
-          <SectionHeader icon="🩹" title="Injury Details" />
-          <InfoGrid rows={[
-            ['Date of Injury',    summary.injury_date],
-            ['Time of Injury',    summary.injury_time],
-            ['Location',          summary.injury_location],
-            ['Body Part(s)',       summary.body_part],
-            ['Current Status',    summary.current_status],
-            ['',                  ''],
-          ]} />
-          <InfoBlock label="Mechanism / Description" value={summary.injury_description} />
-          {summary.termination_details && summary.termination_details !== 'N/A' && (
-            <InfoBlock label="Termination Details" value={summary.termination_details} />
-          )}
-
-          {/* ── Reporting ── */}
-          <SectionHeader icon="📋" title="Reporting" />
-          <InfoGrid rows={[
-            ['Reported to Employer', summary.reported_to_employer],
-            ['Written Report Filed', summary.written_report_filed],
-          ]} />
-
-          {/* ── Medical Treatment ── */}
-          <SectionHeader icon="🏥" title="Medical Treatment" />
-          <InfoGrid rows={[
-            ['Facility',          summary.medical_facility],
-            ['Treating Doctor',   summary.treating_doctor],
-            ['First Visit',       summary.first_treatment_date],
-            ['',                  ''],
-          ]} />
-
-          {/* ── Witnesses ── */}
-          <SectionHeader icon="👥" title="Witnesses" />
-          <InfoBlock label="Witness Information" value={summary.witnesses} />
-
-          {/* ── Prior Injuries ── */}
-          <SectionHeader icon="📁" title="Prior Injury History" />
-          <InfoBlock label="Prior Injuries / Pre-existing Conditions" value={summary.prior_injuries} />
-
-          {/* ── Recorded Statements ── */}
-          <SectionHeader icon="🎙️" title="Recorded Statements" />
-          <InfoGrid rows={[
-            ['Statement Given', summary.recorded_statement],
-            ['',               ''],
-          ]} />
-          {summary.recorded_statement_details && summary.recorded_statement_details !== 'N/A' && (
-            <InfoBlock label="Details" value={summary.recorded_statement_details} />
-          )}
-
-          {/* ── Attorney Notes ── */}
-          {summary.notes && (
-            <>
-              <SectionHeader icon="📝" title="Attorney Notes" />
-              <div style={{
-                background: '#fffbeb', border: '1px solid #fde68a',
-                borderRadius: 9, padding: '13px 16px',
-                fontSize: 13.5, color: '#78350f', lineHeight: 1.7,
-              }}>
-                {summary.notes}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── LandingScreen ────────────────────────────────────────────────────────────
 
 function LandingScreen({ onStart }) {
@@ -1659,14 +1058,11 @@ export default function App() {
   const [messages,    setMessages]    = useState([])   // { role, displayContent }
   const [input,       setInput]       = useState('')
   const [isLoading,   setIsLoading]   = useState(false)
-  const [caseSummary, setCaseSummary] = useState(null)
-  const [showModal,   setShowModal]   = useState(false)
   const [showBanner,  setShowBanner]  = useState(false)
   const [error,       setError]       = useState(null)
 
-  const [feedback,          setFeedback]          = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
-  const [showPreForm,       setShowPreForm]       = useState(false)
+  const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
+  const [showPreForm, setShowPreForm] = useState(false)
   const preFormRef = useRef(null)
 
   const messagesEndRef  = useRef(null)
@@ -1695,11 +1091,6 @@ export default function App() {
       localStorage.setItem('ct_feedback', JSON.stringify(updated))
       return updated
     })
-  }, [])
-
-  const clearFeedback = useCallback(() => {
-    setFeedback([])
-    localStorage.removeItem('ct_feedback')
   }, [])
 
   // ── Core API call ──────────────────────────────────────────────────────────
@@ -1771,9 +1162,8 @@ export default function App() {
 
       if (summary) {
         // Case summary returned (e.g. 1099 hard stop mid-flow, or explicit trigger)
-        setCaseSummary(summary)
-        setShowBanner(true)
         saveCase(summary, fullHistory)
+        setShowBanner(true)
       } else if (hasNextQ) {
         // AI is satisfied with the current topic — advance to next scripted question
         const nextIdx = scriptedIdxRef.current + 1
@@ -1800,9 +1190,8 @@ export default function App() {
             setMessages(prev => [...prev, { role: 'assistant', displayContent: sumText, msgId: `msg-${++msgCounterRef.current}` }])
           }
           if (finalSummary) {
-            setCaseSummary(finalSummary)
-            setShowBanner(true)
             saveCase(finalSummary, summaryHistory)
+            setShowBanner(true)
           }
         }
       }
@@ -1818,16 +1207,12 @@ export default function App() {
     setScreen('chat')
     setMessages([])
     conversationRef.current = []
-    setCaseSummary(null)
     setShowBanner(false)
-    setShowModal(false)
     setError(null)
     setInput('')
-    preFormRef.current    = null
+    preFormRef.current     = null
     scriptedIdxRef.current = -1
     setShowPreForm(true)
-    setFeedback([])
-    localStorage.removeItem('ct_feedback')
   }, [])
 
   const submitPreForm = useCallback((formData) => {
@@ -1852,12 +1237,10 @@ export default function App() {
     setScreen('landing')
     setMessages([])
     conversationRef.current = []
-    setCaseSummary(null)
     setShowBanner(false)
     setShowPreForm(false)
     preFormRef.current     = null
     scriptedIdxRef.current = -1
-    setShowModal(false)
     setError(null)
     setInput('')
   }, [])
@@ -1897,36 +1280,6 @@ export default function App() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {caseSummary && (
-            <button
-              onClick={() => setShowModal(true)}
-              style={{
-                background: 'rgba(255,255,255,0.13)', color: 'white',
-                border: '1.5px solid rgba(255,255,255,0.32)',
-                borderRadius: 7, padding: '6px 13px', fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', letterSpacing: '-0.1px',
-              }}
-            >
-              View Report
-            </button>
-          )}
-          <button
-            onClick={() => setShowFeedbackModal(true)}
-            style={{
-              background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.82)',
-              border: '1.5px solid rgba(255,255,255,0.2)',
-              borderRadius: 7, padding: '6px 13px', fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-            }}
-          >
-            💬 Feedback
-            {feedback.length > 0 && (
-              <span style={{
-                background: '#f59e0b', color: 'white', borderRadius: 10,
-                fontSize: 10, fontWeight: 800, padding: '1px 6px', lineHeight: 1.5,
-              }}>{feedback.length}</span>
-            )}
-          </button>
           <button
             onClick={resetCase}
             style={{
@@ -1941,27 +1294,18 @@ export default function App() {
         </div>
       </header>
 
-      {/* Summary-ready banner */}
+      {/* Completion banner */}
       {showBanner && (
         <div style={{
           background: '#16a34a', color: 'white',
           padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           fontSize: 13.5, flexShrink: 0, animation: 'bannerSlide .3s ease',
         }}>
-          <span>✅ Intake complete — case summary is ready.</span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button
-              onClick={() => { setShowModal(true); setShowBanner(false) }}
-              style={{
-                background: 'rgba(255,255,255,0.22)', color: 'white', border: 'none',
-                borderRadius: 6, padding: '4px 12px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
-              }}
-            >View Report →</button>
-            <button
-              onClick={() => setShowBanner(false)}
-              style={{ background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 19, lineHeight: 1 }}
-            >×</button>
-          </div>
+          <span>✅ Intake complete — report sent to the firm.</span>
+          <button
+            onClick={() => setShowBanner(false)}
+            style={{ background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 19, lineHeight: 1 }}
+          >×</button>
         </div>
       )}
 
@@ -2077,9 +1421,6 @@ export default function App() {
         )
       })()}
 
-      {/* Modals */}
-      {showModal        && <CaseSummaryModal summary={caseSummary} onClose={() => setShowModal(false)} />}
-      {showFeedbackModal && <FeedbackLogModal feedback={feedback} onClose={() => setShowFeedbackModal(false)} onClear={clearFeedback} />}
     </div>
   )
 }
