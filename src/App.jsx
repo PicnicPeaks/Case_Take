@@ -1054,7 +1054,9 @@ function LandingScreen({ onStart }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen,      setScreen]      = useState('landing')
+  const showAbout = new URLSearchParams(window.location.search).has('about')
+
+  const [screen,      setScreen]      = useState(showAbout ? 'landing' : 'chat')
   const [messages,    setMessages]    = useState([])   // { role, displayContent }
   const [input,       setInput]       = useState('')
   const [isLoading,   setIsLoading]   = useState(false)
@@ -1062,7 +1064,7 @@ export default function App() {
   const [error,       setError]       = useState(null)
 
   const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
-  const [showPreForm, setShowPreForm] = useState(false)
+  const [showPreForm, setShowPreForm] = useState(!showAbout)  // start intake immediately if not ?about
   const preFormRef = useRef(null)
 
   const messagesEndRef  = useRef(null)
