@@ -271,7 +271,7 @@ function buildClientHtml(s: Record<string, unknown>): string {
 
 // ── Send via Resend ────────────────────────────────────────────────────────────
 
-async function send(resendKey: string, from: string, to: string, subject: string, html: string) {
+async function send(resendKey: string, from: string, to: string | string[], subject: string, html: string) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -306,11 +306,12 @@ serve(async (req) => {
 
   const results: Record<string, unknown> = {}
 
-  // ── Firm email (always) ──
+  // ── Firm email (always) — supports comma-separated recipients ──
+  const firmRecipients = firmEmail.split(',').map(e => e.trim()).filter(Boolean)
   results.firm = await send(
     resendKey,
     fromEmail,
-    firmEmail,
+    firmRecipients,
     `New Intake: ${s.claimant} — ${s.viability_label} (${s.viability_score})`,
     buildFirmHtml(s),
   )
