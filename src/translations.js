@@ -87,6 +87,12 @@ export const t = {
       softStopContinueFlag:   'Continue — Flag for Attorney Review',
       stop1099Misclass:       'Were you misclassified?',
       stop1099MisclassBody:   'If you believe your employer incorrectly classified you as a 1099 contractor when you should be a W-2 employee, that determination requires attorney review — please contact us directly.',
+
+      repQ:        'Are you currently represented by an attorney for this workers\' compensation claim?',
+      repNo:       'No — I don\'t have an attorney',
+      repYes:      'Yes — I currently have an attorney',
+      repFormerly: 'I had one previously but no longer',
+      repAdvisory: 'Since you are currently represented, our firm cannot formally take on your case at this time. You are welcome to continue for informational purposes, but please direct case-specific questions to your current attorney.',
     },
 
     landing: {
@@ -188,6 +194,12 @@ export const t = {
       softStopContinueFlag:   'Continuar — Marcar para revisión del abogado',
       stop1099Misclass:       '¿Fue clasificado/a incorrectamente?',
       stop1099MisclassBody:   'Si cree que su empleador lo/la clasificó incorrectamente como contratista independiente cuando debería ser empleado/a W-2, esa determinación requiere revisión de un abogado — comuníquese con nosotros directamente.',
+
+      repQ:        '¿Tiene actualmente un abogado que lo/la represente en este reclamo de compensación laboral?',
+      repNo:       'No — no tengo abogado',
+      repYes:      'Sí — actualmente tengo un abogado',
+      repFormerly: 'Tuve uno antes, pero ya no',
+      repAdvisory: 'Como actualmente está representado/a, nuestro bufete no puede asumir formalmente su caso en este momento. Puede continuar con fines informativos, pero consulte a su abogado actual sobre preguntas específicas de su caso.',
     },
 
     landing: {
@@ -242,7 +254,9 @@ const QUESTIONS_EN = [
     fields: [
       { key: 'report_date',    label: 'Date employer was first notified',   type: 'date',   required: true },
       { key: 'reported_to',    label: 'Who was notified? (name and role)',  type: 'text',   placeholder: 'e.g. Supervisor Jane Doe, HR', required: true },
-      { key: 'written_report', label: 'Written incident report completed?', type: 'select', options: ['Yes', 'No', 'Unknown'],           required: true },
+      { key: 'written_report', label: 'Written incident report completed?', type: 'select', options: ['Yes', 'No', 'Unknown'], required: true },
+      { key: 'dwc1_given',       label: 'Did your employer provide you with a DWC-1 workers\' compensation claim form?', type: 'select', options: ['Yes — I completed and submitted it', 'Yes — received but not yet submitted', 'No — employer did not provide one', 'Unknown / unsure'], required: true },
+      { key: 'adjuster_contact', label: 'Has an insurance adjuster or claims administrator contacted you about this claim?', type: 'yesno', includeUnsure: true, required: true },
     ],
   },
   {
@@ -389,7 +403,9 @@ const QUESTIONS_ES = [
     fields: [
       { key: 'report_date',    label: 'Fecha en que notificó al empleador',   type: 'date',   required: true },
       { key: 'reported_to',    label: '¿A quién notificó? (nombre y cargo)',  type: 'text',   placeholder: 'ej. Supervisora Jane Doe, Recursos Humanos', required: true },
-      { key: 'written_report', label: '¿Se completó un reporte escrito?',     type: 'select', options: ['Sí', 'No', 'No sé'],                            required: true },
+      { key: 'written_report', label: '¿Se completó un reporte escrito?', type: 'select', options: ['Sí', 'No', 'No sé'], required: true },
+      { key: 'dwc1_given',       label: '¿Le proporcionó su empleador el formulario DWC-1 de reclamo de compensación laboral?', type: 'select', options: ['Sí — lo completé y lo envié', 'Sí — lo recibí pero aún no lo he enviado', 'No — el empleador no me lo proporcionó', 'No sé / no estoy seguro/a'], required: true },
+      { key: 'adjuster_contact', label: '¿Lo/la ha contactado un ajustador de seguros o administrador de reclamos sobre este caso?', type: 'yesno', includeUnsure: true, required: true },
     ],
   },
   {

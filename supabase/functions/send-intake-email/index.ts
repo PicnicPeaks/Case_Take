@@ -109,10 +109,11 @@ function buildFirmHtml(s: Record<string, unknown>): string {
 
     ${section('👤', 'Client Information', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('Full Name',   s.claimant)}
-        ${row('Phone',       s.phone)}
-        ${row('Email',       s.email)}
-        ${row('Intake Date', s.intake_date)}
+        ${row('Full Name',         s.claimant)}
+        ${row('Phone',             s.phone)}
+        ${row('Email',             s.email)}
+        ${row('Intake Date',       s.intake_date)}
+        ${row('Attorney Status',   s.attorney_represented)}
       </table>`)}
 
     ${section('🏢', 'Employment', `
@@ -141,6 +142,8 @@ function buildFirmHtml(s: Record<string, unknown>): string {
       <table cellpadding="0" cellspacing="0" width="100%">
         ${row('Reported to Employer', s.reported_to_employer)}
         ${row('Written Report Filed', s.written_report_filed)}
+        ${row('DWC-1 Claim Form',     s.dwc1_provided)}
+        ${row('Adjuster Contacted',   s.adjuster_contacted)}
       </table>`)}
 
     ${section('🏥', 'Medical Treatment', `

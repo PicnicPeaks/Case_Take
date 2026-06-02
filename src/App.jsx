@@ -47,6 +47,7 @@ function buildSystemPrompt(today, preForm, scriptedIdx, lang = 'en') {
 PRE-COLLECTED VIA INTAKE FORM (do not re-ask, re-confirm, or probe any of these — they are already settled):
 - Employment type: ${preForm.employmentType === 'w2' ? 'W-2 employee (confirmed — do NOT ask about this again)' : preForm.employmentType === 'unsure' ? 'Unknown — client was unsure, gently verify during the Employment topic only' : 'W-2 employee (confirmed)'}
 - Employer type: ${preForm.governmentType === 'state-local' ? 'State or local government' : preForm.governmentType === 'unsure' ? 'Unknown — confirm during intake' : 'Private employer'}
+- Attorney representation: ${preForm.represented === 'yes' ? 'CURRENTLY REPRESENTED BY ANOTHER ATTORNEY — flag this prominently in your notes and in the summary recommendation' : preForm.represented === 'formerly' ? 'Previously had an attorney but no longer represented' : 'Not currently represented by an attorney'}
 - Client residence: ${preForm.residenceCity}, ${preForm.residenceState}
 - Injury location: ${preForm.injuryCity}, ${preForm.injuryState}
 ${preForm.primaryWorkState && preForm.primaryWorkState !== preForm.injuryState ? `- Primary work state: ${preForm.primaryWorkState}` : ''}\
@@ -107,6 +108,9 @@ INTERNAL RED FLAG MONITORING (track silently — never mention to the client):
 - Vague, inconsistent, or evolving description of injury mechanism
 - Injury within first 7 days of starting employment
 - Termination or resignation shortly after reporting injury
+- Client is currently represented by another attorney on this claim (potential ethical conflict — flag prominently in summary and recommendation)
+- Employer did not provide a DWC-1 claim form (required by LC § 5401 within 24 hours of injury notice) — possible claim suppression or uninsured employer
+- No contact from an insurance adjuster despite time having passed — potential uninsured employer (UEBTF may apply) or claim was not filed with the insurer
 - Claim formally denied by the insurance company (defense already established — note the stated reason)
 - Insurance company has denied or delayed recommended medical treatment (Utilization Review denial — IMR deadline may apply)
 - QME panel received but doctor not yet selected (10-day selection deadline is imminent or may have already passed — if missed, insurer selects)
@@ -124,6 +128,7 @@ When instructed to generate the case summary, wrap up in one or two warm sentenc
   "claimant": "Full legal name",
   "phone": "Phone number as confirmed by client",
   "email": "Email address",
+  "attorney_represented": "Not represented | Currently represented by another attorney | Previously represented",
   "residence": "City and state where client lives",
   "injury_jurisdiction": "City and state where injury occurred (controls CA jurisdiction)",
   "employer": "Employer name",
@@ -137,6 +142,8 @@ When instructed to generate the case summary, wrap up in one or two warm sentenc
   "injury_description": "Step-by-step mechanism of injury",
   "reported_to_employer": "Date reported and to whom",
   "written_report_filed": "Yes | No | Unknown",
+  "dwc1_provided": "Yes, submitted | Yes, not submitted | No | Unknown",
+  "adjuster_contacted": "Yes | No | Unknown",
   "medical_facility": "Name of treating facility",
   "treating_doctor": "Doctor name",
   "first_treatment_date": "YYYY-MM-DD or description",
@@ -435,6 +442,7 @@ function PreIntakeFormCard({ onSubmit, language }) {
   const [step,             setStep]            = useState('employment')
   const [empType,          setEmpType]         = useState(null)    // 'w2' | '1099' | 'unsure'
   const [govType,          setGovType]         = useState(null)    // 'private' | 'state-local' | 'federal' | 'unsure'
+  const [represented,      setRepresented]     = useState(null)    // 'no' | 'yes' | 'formerly'
   const [residenceCity,    setResidenceCity]   = useState('')
   const [residenceState,   setResidenceState]  = useState('California')
   const [injuryCity,       setInjuryCity]      = useState('')
@@ -473,6 +481,7 @@ function PreIntakeFormCard({ onSubmit, language }) {
     onSubmit({
       employmentType: empType,
       governmentType: govType,
+      represented,
       residenceCity, residenceState,
       injuryCity, injuryState,
       primaryWorkState: outOfState ? primaryWorkState : 'California',
@@ -502,6 +511,7 @@ function PreIntakeFormCard({ onSubmit, language }) {
 
   const resetToStart = () => {
     setStep('employment'); setEmpType(null); setGovType(null)
+    setRepresented(null)
     setActivity(null); setExceptions({ traveling: null, vehicle: null, errand: null, ownVehicle: null })
   }
 
@@ -534,12 +544,35 @@ function PreIntakeFormCard({ onSubmit, language }) {
           ))}
         </div>
         {govType && govType !== 'federal' && (
-          <button onClick={() => setStep('location')} style={{
+          <button onClick={() => setStep('represented')} style={{
             background: NAVY, color: 'white', border: 'none', borderRadius: 9,
             padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}>{P.nextBtn}</button>
         )}
       </>)}
+    </PreFormBubble>
+  )
+
+  // ── STEP: Attorney representation ────────────────────────────────────────
+  if (step === 'represented') return (
+    <PreFormBubble>
+      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 14 }}>{P.repQ}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 16 }}>
+        {[['no', P.repNo], ['yes', P.repYes], ['formerly', P.repFormerly]].map(([val, label]) => (
+          <button key={val} style={sb(represented === val)} onClick={() => setRepresented(val)}>{label}</button>
+        ))}
+      </div>
+      {represented === 'yes' && (
+        <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '11px 14px', fontSize: 13, color: '#78350f', lineHeight: 1.65, marginBottom: 14 }}>
+          ⚠️ {P.repAdvisory}
+        </div>
+      )}
+      {represented && (
+        <button onClick={() => setStep('location')} style={{
+          background: NAVY, color: 'white', border: 'none', borderRadius: 9,
+          padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        }}>{P.nextBtn}</button>
+      )}
     </PreFormBubble>
   )
 
