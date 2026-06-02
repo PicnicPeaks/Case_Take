@@ -1,98 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { saveCase } from './supabase.js'
+import { t, getQuestions } from './translations.js'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
 const NAVY_MID   = '#243d5e'
 const NAVY_LIGHT = '#2e4e78'
 
-// ─── Scripted Questions ───────────────────────────────────────────────────────
-// type:'form' → IntakeFormCard rendered; type:'chat' → ScriptedQuestionBubble + free-form textarea
-const SCRIPTED_QUESTIONS = [
-  {
-    idx: 0, type: 'form', topic: 'Contact Information',
-    intro: "Let's start with a few basics.",
-    fields: [
-      { key: 'name',  label: 'Full Legal Name',  type: 'text',  placeholder: 'e.g. Maria Garcia', required: true },
-      { key: 'phone', label: 'Phone Number',      type: 'tel',   placeholder: '(555) 555-5555',    required: true },
-      { key: 'email', label: 'Email Address',     type: 'email', placeholder: 'you@email.com',      required: false },
-    ],
-  },
-  {
-    idx: 1, type: 'form', topic: 'Employment',
-    intro: "Tell me about your job.",
-    fields: [
-      { key: 'employer',       label: 'Employer / Company Name',  type: 'text',   placeholder: 'e.g. Amazon Logistics',    required: true },
-      { key: 'job_title',      label: 'Job Title',                type: 'text',   placeholder: 'e.g. Warehouse Associate', required: true },
-      { key: 'hours_per_week', label: 'Avg. Hours Per Week',      type: 'number', placeholder: '40',                       required: true },
-    ],
-  },
-  {
-    idx: 2, type: 'form', topic: 'Injury Details',
-    intro: "Tell me about the injury itself.",
-    fields: [
-      { key: 'injury_date',        label: 'Date of Injury',          type: 'date',     required: true },
-      { key: 'injury_time',        label: 'Approximate Time of Day', type: 'text',     placeholder: 'e.g. around 2:30 PM',          required: true },
-      { key: 'injury_location',    label: 'Where Did It Happen?',    type: 'text',     placeholder: 'e.g. Warehouse floor, aisle 3 — 123 Main St, Oakland', required: true },
-      { key: 'body_part',          label: 'Body Part(s) Injured',    type: 'text',     placeholder: 'e.g. Lower back, right knee',  required: true },
-      { key: 'injury_description', label: 'How Did It Happen?',      type: 'textarea', placeholder: 'Describe step by step what happened…', required: true },
-    ],
-  },
-  {
-    idx: 3, type: 'form', topic: 'Reporting',
-    intro: "Tell me about how and when the injury was reported.",
-    fields: [
-      { key: 'report_date',    label: 'Date employer was first notified',    type: 'date',   required: true },
-      { key: 'reported_to',    label: 'Who was notified? (name and role)',   type: 'text',   placeholder: 'e.g. Supervisor Jane Doe, HR', required: true },
-      { key: 'written_report', label: 'Written incident report completed?',  type: 'select', options: ['Yes', 'No', 'Unknown'], required: true },
-    ],
-  },
-  {
-    idx: 4, type: 'form', topic: 'Medical Treatment',
-    intro: "Tell me about the medical care you received.",
-    fields: [
-      { key: 'facility',    label: 'Medical Facility or Hospital',  type: 'text', placeholder: 'e.g. Kaiser Permanente Oakland', required: true },
-      { key: 'doctor',      label: 'Treating Doctor (if known)',     type: 'text', placeholder: 'e.g. Dr. Kim',                   required: false },
-      { key: 'first_visit', label: 'Date of First Treatment',        type: 'date',                                                required: true },
-    ],
-  },
-  {
-    idx: 5, type: 'chat',
-    text: "Was anyone else present when the injury occurred — coworkers, supervisors, or bystanders? If so, please share their names and contact information if you have it.",
-  },
-  {
-    idx: 6, type: 'form', topic: 'Prior Injury History',
-    intro: "One question about prior injuries.",
-    fields: [
-      { key: 'has_prior',     label: 'Prior injuries, accidents, or pre-existing conditions to the same body part?', type: 'yesno', includeUnsure: true, required: true },
-      { key: 'prior_details', label: 'Describe the prior injury or condition', type: 'textarea', conditionKey: 'has_prior', conditionValue: 'yes', placeholder: 'Condition and when it occurred…', required: false },
-    ],
-  },
-  {
-    idx: 7, type: 'form', topic: 'Current Employment Status',
-    intro: "What is your current work situation?",
-    fields: [
-      { key: 'status', label: 'Current status', type: 'select', options: ['Still working — same position', 'Modified / light duty', 'Terminated', 'Resigned / quit', 'On medical leave', 'Other'], required: true },
-      { key: 'term_date',         label: 'Date of termination or last day worked', type: 'date',     conditionKey: 'status', conditionValues: ['Terminated', 'Resigned / quit'], required: false },
-      { key: 'term_circumstances', label: 'Circumstances (describe what happened)', type: 'textarea', conditionKey: 'status', conditionValues: ['Terminated', 'Resigned / quit'], placeholder: 'What happened and when…', required: false },
-    ],
-  },
-  {
-    idx: 8, type: 'form', topic: 'Recorded Statements',
-    intro: "Last question — regarding any statements you may have provided.",
-    fields: [
-      { key: 'statement_given',   label: 'Have you given a recorded or written statement to the insurance company or your employer?', type: 'yesno', includeUnsure: true, required: true },
-      { key: 'statement_details', label: 'When, with whom, and what was discussed?', type: 'textarea', conditionKey: 'statement_given', conditionValue: 'yes', placeholder: 'e.g. May 15 — spoke to adjuster Sarah Jones, discussed how the injury occurred…', required: false },
-    ],
-  },
-]
 
-// Build a message object for a scripted question (form or chat)
+// Build a message object for a scripted question (form or chat).
+// Stores only the question index so the current language is always looked up at render time.
 function makeScriptedMsg(q) {
   if (q.type === 'form') {
-    return { role: 'assistant', displayContent: q.topic, isScripted: true, formDef: q, formSubmitted: false, formSummary: null }
+    return { role: 'assistant', isScripted: true, questionIdx: q.idx, formSubmitted: false, formSummary: null }
   }
-  return { role: 'assistant', displayContent: q.text, isScripted: true }
+  return { role: 'assistant', isScripted: true, questionIdx: q.idx }
 }
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -114,12 +36,12 @@ const JURISDICTION_BASIS_LABELS = {
   'commuting-no-exception':     'Commute injury with no applicable exception established — jurisdiction review needed',
 }
 
-const getSystemPrompt = (preForm = null, scriptedIdx = 0) => {
+const getSystemPrompt = (preForm = null, scriptedIdx = 0, lang = 'en') => {
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  return buildSystemPrompt(today, preForm, scriptedIdx)
+  return buildSystemPrompt(today, preForm, scriptedIdx, lang)
 }
 
-function buildSystemPrompt(today, preForm, scriptedIdx) {
+function buildSystemPrompt(today, preForm, scriptedIdx, lang = 'en') {
   const needsJurisdictionReview = preForm?.jurisdictionStatus === 'review'
   const preCollected = preForm ? `
 PRE-COLLECTED VIA INTAKE FORM (do not re-ask, re-confirm, or probe any of these — they are already settled):
@@ -134,22 +56,28 @@ ${needsJurisdictionReview ? `\n⚠️ JURISDICTION FLAG: CA workers' comp covera
 ` : ''
 
   const currentQ = (() => {
-    if (scriptedIdx < 0 || scriptedIdx >= SCRIPTED_QUESTIONS.length) return ''
-    const q = SCRIPTED_QUESTIONS[scriptedIdx]
+    const questions = getQuestions(lang)
+    if (scriptedIdx < 0 || scriptedIdx >= questions.length) return ''
+    const q = questions[scriptedIdx]
     if (q.type === 'form') {
       const fields = q.fields.map(f => f.label).join(', ')
-      return `\nCURRENT TOPIC (question ${scriptedIdx + 1} of ${SCRIPTED_QUESTIONS.length}): ${q.topic}
+      return `\nCURRENT TOPIC (question ${scriptedIdx + 1} of ${questions.length}): ${q.topic}
 Type: Structured form submission. The client just submitted form data covering: ${fields}.
 The submitted values are in the most recent user message. For most clean submissions, emit <next_question/> quickly after a brief acknowledgment. Only probe if there is a specific concern — e.g., invalid phone format, implausible date, or missing critical information.
 `
     }
-    return `\nCURRENT SCRIPTED QUESTION (question ${scriptedIdx + 1} of ${SCRIPTED_QUESTIONS.length}):
+    return `\nCURRENT SCRIPTED QUESTION (question ${scriptedIdx + 1} of ${questions.length}):
 "${q.text}"
 This question has already been displayed to the client. Evaluate their response for completeness. Probe if vague or incomplete; emit <next_question/> when satisfied.
 `
   })()
 
+  const langInstruction = lang === 'es'
+    ? 'LANGUAGE: This interview is in Spanish. You MUST respond entirely in Spanish at all times — no English whatsoever, even for legal terms. Use plain, clear Spanish appropriate for a client who may not have legal expertise.'
+    : 'LANGUAGE: This interview is in English.'
+
   return `Today's date is ${today}.
+${langInstruction}
 ${preCollected}${currentQ}
 You are an intake follow-up specialist at a California workers' compensation law firm. The interview uses a scripted question system — fixed questions are shown to the client one at a time by the application. Your role is to:
 
@@ -269,8 +197,14 @@ function AiAvatar() {
     <div style={{
       width: 34, height: 34, borderRadius: '50%', background: NAVY,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: 'white', fontSize: 11, fontWeight: 700, flexShrink: 0, letterSpacing: '0.05em'
-    }}>AI</div>
+      flexShrink: 0,
+    }}>
+      {/* 4-pointed sparkle + small accent — conveys AI without text */}
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="white"/>
+        <path d="M19 3L20 5L22 6L20 7L19 9L18 7L16 6L18 5Z" fill="rgba(255,255,255,0.5)"/>
+      </svg>
+    </div>
   )
 }
 
@@ -352,7 +286,7 @@ function MessageBubble({ message }) {
 
 // ─── MessageFeedback ──────────────────────────────────────────────────────────
 
-function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
+function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit, language }) {
   const existing = feedbackMap[msgId]
   const [pendingRating, setPendingRating] = useState(null)
   const [expanded,      setExpanded]      = useState(false)
@@ -378,7 +312,7 @@ function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
         {existing.comment && (
           <span style={{ fontSize: 11.5, color: '#6b7280', fontStyle: 'italic' }}>"{existing.comment}"</span>
         )}
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>· recorded</span>
+        <span style={{ fontSize: 11, color: '#9ca3af' }}>· {t[language].recorded}</span>
       </div>
     )
   }
@@ -387,7 +321,7 @@ function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
     <div style={{ marginTop: 5, marginBottom: 14, marginLeft: 44 }}>
       {!expanded ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 2 }}>Helpful?</span>
+          <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 2 }}>{t[language].helpful}</span>
           {['up', 'down'].map(r => (
             <button
               key={r}
@@ -408,7 +342,7 @@ function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
           <span style={{ fontSize: 13 }}>{pendingRating === 'up' ? '👍' : '👎'}</span>
           <input
             autoFocus
-            placeholder="Note required…"
+            placeholder={t[language].noteRequired}
             value={comment}
             onChange={e => setComment(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && comment.trim() && submit()}
@@ -430,7 +364,7 @@ function MessageFeedback({ msgId, snippet, feedbackMap, onSubmit }) {
               fontWeight: 600, cursor: comment.trim() ? 'pointer' : 'not-allowed',
               transition: 'background 0.15s',
             }}
-          >Send</button>
+          >{t[language].submit}</button>
           <button
             onClick={() => setExpanded(false)}
             style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 13 }}
@@ -483,7 +417,7 @@ function PreFormLabel({ children }) {
   )
 }
 
-function PreIntakeFormCard({ onSubmit }) {
+function PreIntakeFormCard({ onSubmit, language }) {
   const [step,             setStep]            = useState('employment')
   const [empType,          setEmpType]         = useState(null)    // 'w2' | '1099' | 'unsure'
   const [govType,          setGovType]         = useState(null)    // 'private' | 'state-local' | 'federal' | 'unsure'
@@ -495,6 +429,9 @@ function PreIntakeFormCard({ onSubmit }) {
   const [activity,         setActivity]        = useState(null)    // 'working' | 'travel' | 'commuting' | 'other'
   const [exceptions,       setExceptions]      = useState({ traveling: null, vehicle: null, errand: null, ownVehicle: null })
   const [softStopBasis,    setSoftStopBasis]   = useState(null)
+
+  const P  = t[language].pre
+  const YN = t[language].yesno
 
   const outOfState = injuryState !== 'California'
   const canProceedLocation = residenceCity.trim() && injuryCity.trim() &&
@@ -557,14 +494,14 @@ function PreIntakeFormCard({ onSubmit }) {
   // ── STEP: Employment eligibility ──────────────────────────────────────────
   if (step === 'employment') return (
     <PreFormBubble>
-      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 3 }}>Before we begin</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 3 }}>{P.beforeBeginTitle}</div>
       <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 18, lineHeight: 1.5 }}>
-        A few quick questions to confirm eligibility and establish jurisdiction.
+        {P.beforeBeginSub}
       </div>
 
-      <PreFormLabel>What is your employment type?</PreFormLabel>
+      <PreFormLabel>{P.empQ}</PreFormLabel>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 20 }}>
-        {[['w2', 'W-2 Employee'], ['1099', '1099 Contractor'], ['unsure', 'Not sure']].map(([val, label]) => (
+        {[['w2', P.empW2], ['1099', P.emp1099], ['unsure', P.empUnsure]].map(([val, label]) => (
           <button key={val} style={sb(empType === val)} onClick={() => {
             setEmpType(val)
             if (val === '1099') setStep('stop-1099')
@@ -573,9 +510,9 @@ function PreIntakeFormCard({ onSubmit }) {
       </div>
 
       {(empType === 'w2' || empType === 'unsure') && (<>
-        <PreFormLabel>Is your employer a government agency?</PreFormLabel>
+        <PreFormLabel>{P.govQ}</PreFormLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 20 }}>
-          {[['private', 'Private employer'], ['state-local', 'State / local government'], ['federal', 'Federal government'], ['unsure', 'Not sure']].map(([val, label]) => (
+          {[['private', P.govPrivate], ['state-local', P.govState], ['federal', P.govFederal], ['unsure', P.govUnsure]].map(([val, label]) => (
             <button key={val} style={sb(govType === val)} onClick={() => {
               setGovType(val)
               if (val === 'federal') setStep('stop-federal')
@@ -586,7 +523,7 @@ function PreIntakeFormCard({ onSubmit }) {
           <button onClick={() => setStep('location')} style={{
             background: NAVY, color: 'white', border: 'none', borderRadius: 9,
             padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-          }}>Next →</button>
+          }}>{P.nextBtn}</button>
         )}
       </>)}
     </PreFormBubble>
@@ -597,18 +534,16 @@ function PreIntakeFormCard({ onSubmit }) {
     <PreFormBubble>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 20 }}>⚠️</span>
-        <div style={{ fontWeight: 800, fontSize: 15, color: '#92400e' }}>Unable to Proceed</div>
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#92400e' }}>{P.stop1099Title}</div>
       </div>
       <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7, marginBottom: 12 }}>
-        Our firm represents <strong>W-2 employees</strong> in California workers' compensation cases.
-        Independent contractors (1099) are generally not covered under California workers' compensation law.
+        {P.stop1099Body}
       </div>
       <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: '11px 14px', fontSize: 13, color: '#78350f', lineHeight: 1.65, marginBottom: 18 }}>
-        <strong>Were you misclassified?</strong> If you believe your employer incorrectly classified you as a 1099 contractor
-        when you should be a W-2 employee, that determination requires attorney review — please contact us directly.
+        <strong>{P.stop1099Misclass}</strong> {P.stop1099MisclassBody}
       </div>
       <button onClick={resetToStart} style={{ background: 'none', border: '1.5px solid #d1d5db', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', color: '#374151' }}>
-        ← Start Over
+        {P.startOver}
       </button>
     </PreFormBubble>
   )
@@ -618,12 +553,10 @@ function PreIntakeFormCard({ onSubmit }) {
     <PreFormBubble>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 20 }}>ℹ️</span>
-        <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>Different Coverage Applies</div>
+        <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>{P.stopFedTitle}</div>
       </div>
       <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7, marginBottom: 12 }}>
-        <strong>Federal government employees</strong> are covered under the{' '}
-        <strong>Federal Employees' Compensation Act (FECA)</strong>, not California workers' compensation.
-        Claims must be filed through the U.S. Department of Labor.
+        {P.stopFedBody}
       </div>
       <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '11px 14px', fontSize: 13, color: '#0c4a6e', lineHeight: 1.65, marginBottom: 18 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>U.S. Dept. of Labor — Office of Workers' Compensation Programs</div>
@@ -631,7 +564,7 @@ function PreIntakeFormCard({ onSubmit }) {
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>Monday – Friday, 8 AM – 5 PM local time</div>
       </div>
       <button onClick={resetToStart} style={{ background: 'none', border: '1.5px solid #d1d5db', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', color: '#374151' }}>
-        ← Start Over
+        {P.startOver}
       </button>
     </PreFormBubble>
   )
@@ -639,11 +572,11 @@ function PreIntakeFormCard({ onSubmit }) {
   // ── STEP: Location & circumstances ────────────────────────────────────────
   if (step === 'location') return (
     <PreFormBubble>
-      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 16 }}>Location &amp; Circumstances</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 16 }}>{P.locationTitle}</div>
 
-      <PreFormLabel>Where do you currently live?</PreFormLabel>
+      <PreFormLabel>{P.liveLabel}</PreFormLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <input placeholder="City" value={residenceCity} onChange={e => setResidenceCity(e.target.value)}
+        <input placeholder={P.cityPlaceholder} value={residenceCity} onChange={e => setResidenceCity(e.target.value)}
           style={{ ...inputStyle, flex: 1 }}
           onFocus={e => (e.target.style.borderColor = NAVY)} onBlur={e => (e.target.style.borderColor = '#d1d5db')} />
         <select value={residenceState} onChange={e => setResidenceState(e.target.value)}
@@ -653,9 +586,9 @@ function PreIntakeFormCard({ onSubmit }) {
         </select>
       </div>
 
-      <PreFormLabel>Where did the injury occur?</PreFormLabel>
+      <PreFormLabel>{P.injuredLabel}</PreFormLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: outOfState ? 0 : 16 }}>
-        <input placeholder="City" value={injuryCity} onChange={e => setInjuryCity(e.target.value)}
+        <input placeholder={P.cityPlaceholder} value={injuryCity} onChange={e => setInjuryCity(e.target.value)}
           style={{ ...inputStyle, flex: 1 }}
           onFocus={e => (e.target.style.borderColor = NAVY)} onBlur={e => (e.target.style.borderColor = '#d1d5db')} />
         <select value={injuryState} onChange={e => { setInjuryState(e.target.value); setActivity(null) }}
@@ -668,23 +601,23 @@ function PreIntakeFormCard({ onSubmit }) {
       {outOfState && (
         <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 16, paddingTop: 16 }}>
           <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>ℹ️</span> Injury occurred outside California — a few more questions to check jurisdiction
+            <span>ℹ️</span> {P.outOfStateNote}
           </div>
 
-          <PreFormLabel>What state do you primarily work in?</PreFormLabel>
+          <PreFormLabel>{P.primaryWorkState}</PreFormLabel>
           <select value={primaryWorkState} onChange={e => setPrimaryWorkState(e.target.value)}
             style={{ ...inputStyle, marginBottom: 16, cursor: 'pointer' }}
             onFocus={e => (e.target.style.borderColor = NAVY)} onBlur={e => (e.target.style.borderColor = '#d1d5db')}>
             {US_STATES.map(s => <option key={s}>{s}</option>)}
           </select>
 
-          <PreFormLabel>What were you doing when the injury occurred?</PreFormLabel>
+          <PreFormLabel>{P.actQ}</PreFormLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 6 }}>
             {[
-              ['working',   '🏗',  'Working at my regular workplace or worksite'],
-              ['travel',    '✈️', 'Business travel — away from home for work'],
-              ['commuting', '🚗',  'Commuting to or from work'],
-              ['other',     '❓',  'Other / not sure'],
+              ['working',   '🏗',  P.actWorking],
+              ['travel',    '✈️', P.actTravel],
+              ['commuting', '🚗',  P.actCommuting],
+              ['other',     '❓',  P.actOther],
             ].map(([val, icon, label]) => (
               <button key={val} onClick={() => setActivity(val)}
                 style={{ ...sb(activity === val), display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px' }}>
@@ -701,30 +634,24 @@ function PreIntakeFormCard({ onSubmit }) {
         border: 'none', borderRadius: 9, padding: '10px 22px',
         fontSize: 14, fontWeight: 700, cursor: canProceedLocation ? 'pointer' : 'not-allowed',
         marginTop: 18, transition: 'background 0.15s',
-      }}>Begin Intake →</button>
+      }}>{P.startBtn}</button>
     </PreFormBubble>
   )
 
   // ── STEP: Going-and-coming exception check ────────────────────────────────
   if (step === 'commuting-check') {
-    const qs = [
-      ['traveling',  'Is your job a traveling position with no fixed workplace — such as delivery, field service, or outside sales?'],
-      ['vehicle',    'Were you operating a vehicle provided by your employer at the time of the injury?'],
-      ['errand',     'Were you running a specific errand or completing a task that your employer asked you to handle?'],
-      ['ownVehicle', 'Does your job require you to use your personal vehicle, and does your employer reimburse you for mileage or require car access as a job condition?'],
-    ]
     return (
       <PreFormBubble>
-        <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 4 }}>Commuting — Exception Check</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginBottom: 4 }}>{P.commutingTitle}</div>
         <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.55, marginBottom: 18 }}>
-          Injuries that occur while commuting are generally not covered, but several exceptions apply. Please answer each question:
+          {P.commutingExcSub}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {qs.map(([key, q]) => (
+          {['traveling', 'vehicle', 'errand', 'ownVehicle'].map((key, i) => (
             <div key={key}>
-              <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, marginBottom: 8 }}>{q}</div>
+              <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, marginBottom: 8 }}>{P.commuting[i]}</div>
               <div style={{ display: 'flex', gap: 7 }}>
-                {[[true, 'Yes'], [false, 'No']].map(([val, label]) => (
+                {[[true, YN.yes], [false, YN.no]].map(([val, label]) => (
                   <button key={String(val)} onClick={() => handleException(key, val)}
                     style={{ ...sb(exceptions[key] === val), minWidth: 70, textAlign: 'center', padding: '7px 16px' }}>
                     {label}
@@ -746,28 +673,27 @@ function PreIntakeFormCard({ onSubmit }) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontSize: 20 }}>⚠️</span>
           <div style={{ fontWeight: 800, fontSize: 15, color: '#92400e' }}>
-            {isCommuting ? 'Claim May Not Be Covered' : 'Jurisdiction Review Needed'}
+            {isCommuting ? P.softStopCommutingTitle : P.softStopJurTitle}
           </div>
         </div>
         <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7, marginBottom: 12 }}>
           {isCommuting
-            ? 'Injuries that occur during a commute to or from work are generally excluded from California workers\' compensation coverage, and no applicable exception was identified based on your answers.'
-            : `The injury occurred outside California (${injuryState}) and a clear California workers' compensation jurisdiction connection wasn't established based on your answers. This claim may need to be filed in ${injuryState} instead.`
+            ? P.softStopCommutingBody
+            : P.softStopJurBody.replace(/{state}/g, injuryState)
           }
         </div>
         <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: '11px 14px', fontSize: 13, color: '#78350f', lineHeight: 1.65, marginBottom: 18 }}>
-          <strong>This isn't necessarily the end.</strong> An attorney may identify additional facts that establish coverage.
-          You can continue the intake and the jurisdiction question will be flagged for attorney review.
+          {P.softStopNote}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={() => doSubmit('review', softStopBasis)} style={{
             background: NAVY, color: 'white', border: 'none', borderRadius: 8,
             padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          }}>Continue — Flag for Attorney Review</button>
+          }}>{P.softStopContinueFlag}</button>
           <button onClick={resetToStart} style={{
             background: 'none', border: '1.5px solid #d1d5db', borderRadius: 8,
             padding: '9px 16px', fontSize: 13, cursor: 'pointer', color: '#374151',
-          }}>← Start Over</button>
+          }}>{P.startOver}</button>
         </div>
       </PreFormBubble>
     )
@@ -778,7 +704,7 @@ function PreIntakeFormCard({ onSubmit }) {
 
 // ─── IntakeFormCard ───────────────────────────────────────────────────────────
 
-function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit }) {
+function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit, language }) {
   const [values, setValues] = useState({})
 
   const isVisible = (field) => {
@@ -845,7 +771,7 @@ function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit
                   borderRadius: 8, padding: '7px 18px', fontSize: 13.5,
                   fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.12s',
                 }}>
-                  {opt === 'unsure' ? 'Not sure' : opt.charAt(0).toUpperCase() + opt.slice(1)}
+                  {opt === 'yes' ? t[language].yesno.yes : opt === 'no' ? t[language].yesno.no : t[language].yesno.unsure}
                 </button>
               )
             })}
@@ -900,7 +826,7 @@ function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit
           {question.topic}
         </div>
         <div style={{ fontSize: 12, color: '#6366f1', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-          ✓ Submitted
+          {t[language].submitted}
         </div>
       </div>
     </div>
@@ -924,7 +850,7 @@ function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit
           border: 'none', borderRadius: 9, padding: '9px 22px',
           fontSize: 14, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'not-allowed',
           transition: 'background 0.15s', marginTop: 2,
-        }}>Submit →</button>
+        }}>{t[language].submit} →</button>
       </div>
     </div>
   )
@@ -932,7 +858,7 @@ function IntakeFormCard({ question, msgIdx, formSubmitted, formSummary, onSubmit
 
 // ─── ScriptedQuestionBubble ───────────────────────────────────────────────────
 
-function ScriptedQuestionBubble({ question }) {
+function ScriptedQuestionBubble({ question, language }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 14, paddingRight: 56, animation: 'msgFadeIn .22s ease' }}>
       <AiAvatar />
@@ -946,7 +872,7 @@ function ScriptedQuestionBubble({ question }) {
         maxWidth: '100%',
       }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
-          Intake Question
+          {t[language].intakeQuestion}
         </div>
         <div style={{ color: '#111827', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
           {question}
@@ -958,26 +884,8 @@ function ScriptedQuestionBubble({ question }) {
 
 // ─── LandingScreen ────────────────────────────────────────────────────────────
 
-function LandingScreen({ onStart }) {
-  const features = [
-    {
-      icon: '📋',
-      title: 'Structured Questions',
-      desc: 'AI-guided 9-stage intake covering employment, injury mechanics, treatment, witnesses, prior history, and more.',
-    },
-    {
-      icon: '🚩',
-      title: 'Red Flag Detection',
-      desc: 'Automatically tracks late reporting, contractor status, conflicting timelines, and 10+ other risk factors — silently.',
-    },
-    {
-      icon: '📊',
-      title: 'Viability Report',
-      desc: 'Generates a scored case summary with a donut chart, red-flag list, and attorney recommendation ready for review.',
-    },
-  ]
-
-  const canStart = true
+function LandingScreen({ onStart, language }) {
+  const L = t[language].landing
 
   return (
     <div style={{ minHeight: '100svh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
@@ -993,7 +901,7 @@ function LandingScreen({ onStart }) {
         }}>⚖️</div>
         <div>
           <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>CaseTake</div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>California • Case Screening</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
         </div>
       </nav>
 
@@ -1007,33 +915,31 @@ function LandingScreen({ onStart }) {
         <h1 style={{
           margin: '0 0 14px', color: 'white', fontWeight: 900,
           fontSize: 'clamp(26px, 5vw, 44px)', letterSpacing: '-0.8px', lineHeight: 1.15,
+          whiteSpace: 'pre-line',
         }}>
-          Workers' Comp Intake<br />Screening Tool
+          {L.title}
         </h1>
         <p style={{
           margin: '0 auto 36px', maxWidth: 560, fontSize: 17,
           opacity: 0.82, lineHeight: 1.65, color: 'white',
         }}>
-          AI-powered intake interviews for California workers' compensation cases.
-          Structured, thorough, and designed to surface what matters most before the attorney review.
+          {L.subtitle}
         </p>
 
         <button
-          onClick={canStart ? onStart : undefined}
-          disabled={!canStart}
+          onClick={onStart}
           style={{
-            background: canStart ? 'white' : 'rgba(255,255,255,0.25)',
-            color: canStart ? NAVY : 'rgba(255,255,255,0.45)',
+            background: 'white', color: NAVY,
             border: 'none', borderRadius: 10, padding: '14px 38px',
-            fontSize: 16, fontWeight: 800, cursor: canStart ? 'pointer' : 'default',
-            boxShadow: canStart ? '0 6px 24px rgba(0,0,0,0.25)' : 'none',
+            fontSize: 16, fontWeight: 800, cursor: 'pointer',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
             transition: 'transform 0.12s, box-shadow 0.12s',
             letterSpacing: '-0.2px',
           }}
-          onMouseOver={e => canStart && (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={e => (e.currentTarget.style.transform = 'none')}
         >
-          Start New Intake →
+          {L.startBtn}
         </button>
       </div>
 
@@ -1044,7 +950,7 @@ function LandingScreen({ onStart }) {
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: 20,
         }}>
-          {features.map((f, i) => (
+          {L.features.map((f, i) => (
             <div key={i} style={{
               background: 'white', borderRadius: 13, padding: '26px 22px',
               boxShadow: '0 2px 14px rgba(0,0,0,0.07)', border: '1px solid #e5e7eb',
@@ -1079,7 +985,12 @@ export default function App() {
 
   const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
   const [showPreForm, setShowPreForm] = useState(!showAbout)  // start intake immediately if not ?about
-  const preFormRef = useRef(null)
+  const [language,    setLanguage]    = useState('en')
+  const preFormRef    = useRef(null)
+  const languageRef   = useRef('en')
+
+  // Keep languageRef in sync with state for use inside callbacks
+  useEffect(() => { languageRef.current = language }, [language])
 
   const messagesEndRef  = useRef(null)
   const conversationRef = useRef([])   // full raw history sent to API
@@ -1126,7 +1037,7 @@ export default function App() {
           model: 'claude-sonnet-4-5',
           max_tokens: 1000,
           temperature: 0.2,
-          system: getSystemPrompt(preForm, scriptedIdxRef.current),
+          system: getSystemPrompt(preForm, scriptedIdxRef.current, languageRef.current),
           messages: history,
         }),
       })
@@ -1185,9 +1096,10 @@ export default function App() {
         const nextIdx = scriptedIdxRef.current + 1
         scriptedIdxRef.current = nextIdx
 
-        if (nextIdx < SCRIPTED_QUESTIONS.length) {
+        const questions = getQuestions(languageRef.current)
+        if (nextIdx < questions.length) {
           // Show the next scripted question (form or chat)
-          setMessages(prev => [...prev, makeScriptedMsg(SCRIPTED_QUESTIONS[nextIdx])])
+          setMessages(prev => [...prev, makeScriptedMsg(questions[nextIdx])])
           // Don't add to conversationRef here — system prompt carries the current question context
         } else {
           // All 9 questions done — auto-trigger summary generation
@@ -1237,7 +1149,7 @@ export default function App() {
     conversationRef.current = []
     msgCounterRef.current   = 0
     setShowPreForm(false)
-    setMessages([makeScriptedMsg(SCRIPTED_QUESTIONS[0])])
+    setMessages([makeScriptedMsg(getQuestions(languageRef.current)[0])])
   }, [])
 
   // Called by IntakeFormCard when a form is submitted
@@ -1272,7 +1184,7 @@ export default function App() {
   // ── Landing screen ─────────────────────────────────────────────────────────
   if (screen === 'landing') {
     return (
-      <LandingScreen onStart={startIntake} />
+      <LandingScreen onStart={startIntake} language={language} />
     )
   }
 
@@ -1297,6 +1209,15 @@ export default function App() {
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
+            onClick={() => setLanguage(l => l === 'en' ? 'es' : 'en')}
+            style={{
+              background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)',
+              border: '1.5px solid rgba(255,255,255,0.2)',
+              borderRadius: 7, padding: '6px 13px', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >{t[language].langToggle}</button>
+          <button
             onClick={resetCase}
             style={{
               background: 'transparent', color: 'rgba(255,255,255,0.72)',
@@ -1305,7 +1226,7 @@ export default function App() {
               cursor: 'pointer',
             }}
           >
-            New Case
+            {t[language].newCase}
           </button>
         </div>
       </header>
@@ -1317,7 +1238,7 @@ export default function App() {
           padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           fontSize: 13.5, flexShrink: 0, animation: 'bannerSlide .3s ease',
         }}>
-          <span>✅ Intake complete — report sent to the firm.</span>
+          <span>✅ {t[language].intakeComplete}</span>
           <button
             onClick={() => setShowBanner(false)}
             style={{ background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 19, lineHeight: 1 }}
@@ -1344,21 +1265,26 @@ export default function App() {
       <main style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 8px' }}>
         <div style={{ maxWidth: 740, margin: '0 auto' }}>
           {showPreForm && (
-            <PreIntakeFormCard onSubmit={submitPreForm} />
+            <PreIntakeFormCard onSubmit={submitPreForm} language={language} />
           )}
           {messages.map((msg, i) => (
             <div key={i}>
-              {msg.isScripted && msg.formDef
-                ? <IntakeFormCard
-                    question={msg.formDef}
-                    msgIdx={i}
-                    formSubmitted={!!msg.formSubmitted}
-                    formSummary={msg.formSummary}
-                    onSubmit={submitFormAnswer}
-                  />
-                : msg.isScripted
-                  ? <ScriptedQuestionBubble question={msg.displayContent} />
-                  : <MessageBubble message={msg} />
+              {msg.isScripted
+                ? (() => {
+                    const q = getQuestions(language)[msg.questionIdx]
+                    if (!q) return null
+                    return q.type === 'form'
+                      ? <IntakeFormCard
+                          question={q}
+                          msgIdx={i}
+                          formSubmitted={!!msg.formSubmitted}
+                          formSummary={msg.formSummary}
+                          onSubmit={submitFormAnswer}
+                          language={language}
+                        />
+                      : <ScriptedQuestionBubble question={q.text} language={language} />
+                  })()
+                : <MessageBubble message={msg} />
               }
               {!msg.isScripted && msg.msgId && (
                 <MessageFeedback
@@ -1366,6 +1292,7 @@ export default function App() {
                   snippet={msg.displayContent}
                   feedbackMap={feedbackMap}
                   onSubmit={addFeedback}
+                  language={language}
                 />
               )}
             </div>
@@ -1378,13 +1305,15 @@ export default function App() {
       {/* Input bar */}
       {(() => {
         const lastMsg = messages[messages.length - 1]
-        const formActive = !isLoading && !!lastMsg?.formDef && !lastMsg?.formSubmitted
+        const lastQ = lastMsg?.isScripted ? getQuestions(language)[lastMsg.questionIdx] : null
+        const formActive = !isLoading && lastQ?.type === 'form' && !lastMsg?.formSubmitted
         const inputDisabled = isLoading || formActive
+        const T = t[language]
         const placeholder = isLoading
-          ? 'Waiting for response…'
+          ? T.waiting
           : formActive
-            ? 'Fill out the form above ↑'
-            : 'Type your response…'
+            ? T.fillForm
+            : T.typeResponse
         return (
       <footer style={{
         background: 'white', borderTop: '1px solid #e5e7eb',
@@ -1431,7 +1360,7 @@ export default function App() {
         </div>
         <div style={{ maxWidth: 740, margin: '5px auto 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 11, color: '#d1d5db' }}>© {new Date().getFullYear()} Picnic Peaks LLC. All rights reserved.</div>
-          <div style={{ fontSize: 11, color: '#bfbfbf' }}>{formActive ? 'Submit the form above to continue' : 'Enter to send · Shift+Enter for new line'}</div>
+          <div style={{ fontSize: 11, color: '#bfbfbf' }}>{formActive ? T.fillForm : T.enterToSend}</div>
         </div>
       </footer>
         )
