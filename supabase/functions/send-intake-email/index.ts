@@ -148,6 +148,17 @@ function buildFirmHtml(s: Record<string, unknown>): string {
         ${row('Facility',       s.medical_facility)}
         ${row('Doctor',         s.treating_doctor)}
         ${row('First Visit',    s.first_treatment_date)}
+        ${row('Treating Via',   s.treating_type)}
+      </table>`)}
+
+    ${section('⚖️', 'Claim Status & Medical Disputes', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('Claim Decision',      s.claim_status)}
+        ${row('Denial Reason',       s.denial_reason)}
+        ${row('Treatment Denied',    s.treatment_denied)}
+        ${row('QME / AME Stage',     s.qme_stage)}
+        ${row('QME / AME Findings',  s.qme_findings)}
+        ${row('P&S Declared',        s.ps_declared)}
       </table>`)}
 
     ${section('👥', 'Witnesses', `

@@ -107,6 +107,13 @@ INTERNAL RED FLAG MONITORING (track silently — never mention to the client):
 - Vague, inconsistent, or evolving description of injury mechanism
 - Injury within first 7 days of starting employment
 - Termination or resignation shortly after reporting injury
+- Claim formally denied by the insurance company (defense already established — note the stated reason)
+- Insurance company has denied or delayed recommended medical treatment (Utilization Review denial — IMR deadline may apply)
+- QME panel received but doctor not yet selected (10-day selection deadline is imminent or may have already passed — if missed, insurer selects)
+- QME evaluation completed without attorney representation (client may have made statements or concessions without knowing the legal weight of the exam)
+- QME / AME findings conflict with the treating physician's opinion (contested medical opinion — significant litigation risk)
+- Treating solely through employer's MPN with no independent physician (employer controls medical evidence)
+- Permanent & Stationary declared unusually early in the claim — before treatment could reasonably stabilize the condition
 
 GENERATING THE CASE SUMMARY:
 When instructed to generate the case summary, wrap up in one or two warm sentences, then output the complete JSON inside <case_summary> tags.
@@ -133,6 +140,13 @@ When instructed to generate the case summary, wrap up in one or two warm sentenc
   "medical_facility": "Name of treating facility",
   "treating_doctor": "Doctor name",
   "first_treatment_date": "YYYY-MM-DD or description",
+  "treating_type": "MPN doctor | Pre-designated personal doctor | ER only | None | Unknown",
+  "claim_status": "Accepted | Denied | Pending | Unknown",
+  "denial_reason": "Stated reason for denial, or 'N/A'",
+  "treatment_denied": "Yes | No | Unknown — note what treatment was denied if known",
+  "qme_stage": "None | Requested | Panel received | Scheduled | Completed | Unknown",
+  "qme_findings": "Summary of evaluator outcome and agreement/disagreement with treating physician, or 'N/A'",
+  "ps_declared": "Yes | No | Unknown",
   "witnesses": "Witness names and contact info, or 'None reported'",
   "prior_injuries": "Description of prior injuries/conditions, or 'None reported'",
   "current_status": "Working | Modified Duty | Terminated | Unknown",

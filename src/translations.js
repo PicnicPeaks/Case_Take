@@ -95,7 +95,7 @@ export const t = {
       subtitle: "AI-powered intake interviews for California workers' compensation cases. Structured, thorough, and designed to surface what matters most before the attorney review.",
       startBtn: 'Start New Intake →',
       features: [
-        { icon: '📋', title: 'Structured Questions',  desc: "AI-guided 9-stage intake covering employment, injury mechanics, treatment, witnesses, prior history, and more." },
+        { icon: '📋', title: 'Structured Questions',  desc: "AI-guided 10-stage intake covering employment, injury mechanics, treatment, claim status, QME disputes, witnesses, prior history, and more." },
         { icon: '🚩', title: 'Red Flag Detection',    desc: 'Automatically tracks late reporting, contractor status, conflicting timelines, and 10+ other risk factors — silently.' },
         { icon: '📊', title: 'Viability Report',      desc: 'Generates a scored case summary with a red-flag list and attorney recommendation ready for review.' },
       ],
@@ -196,7 +196,7 @@ export const t = {
       subtitle: "Entrevistas de admisión impulsadas por IA para casos de compensación laboral en California. Estructuradas, exhaustivas y diseñadas para identificar lo más importante antes de la revisión del abogado.",
       startBtn: 'Comenzar nueva admisión →',
       features: [
-        { icon: '📋', title: 'Preguntas estructuradas',    desc: 'Admisión de 9 etapas guiada por IA que cubre empleo, mecánica de la lesión, tratamiento, testigos, historial previo y más.' },
+        { icon: '📋', title: 'Preguntas estructuradas',    desc: 'Admisión de 10 etapas guiada por IA que cubre empleo, mecánica de la lesión, tratamiento, estado del reclamo, disputas de QME, testigos, historial previo y más.' },
         { icon: '🚩', title: 'Detección de alertas',       desc: 'Rastrea automáticamente retrasos en reportes, estado de contratista, cronologías contradictorias y más de 10 factores de riesgo.' },
         { icon: '📊', title: 'Informe de viabilidad',      desc: 'Genera un resumen del caso con puntuación, lista de alertas y recomendación para el abogado.' },
       ],
@@ -255,11 +255,79 @@ const QUESTIONS_EN = [
     ],
   },
   {
-    idx: 5, type: 'chat',
+    idx: 5, type: 'form', topic: 'Claim Status & Medical Disputes',
+    intro: 'A few questions about how the insurance company has responded and whether any independent medical evaluation has been involved.',
+    fields: [
+      {
+        key: 'claim_status',
+        label: 'Has the insurance company issued a decision on your claim?',
+        type: 'select',
+        options: ['Accepted (liability admitted)', 'Denied', 'Still under investigation — no decision yet', 'Unknown / unsure'],
+        required: true,
+      },
+      {
+        key: 'denial_reason',
+        label: 'What reason did they give for denying the claim?',
+        type: 'textarea',
+        conditionKey: 'claim_status', conditionValue: 'Denied',
+        placeholder: 'e.g. "Injury not work-related" or "Missed the reporting deadline"…',
+        required: false,
+      },
+      {
+        key: 'treating_type',
+        label: 'Who is your current treating physician?',
+        type: 'select',
+        options: [
+          'Employer\'s assigned MPN (network) doctor',
+          'My own pre-designated personal doctor',
+          'Emergency / urgent care only — no ongoing treating physician',
+          'No treatment yet',
+          'Unknown / unsure',
+        ],
+        required: true,
+      },
+      {
+        key: 'treatment_denied',
+        label: 'Has the insurance company denied or delayed any treatment recommended by your doctor?',
+        type: 'yesno', includeUnsure: true,
+        required: true,
+      },
+      {
+        key: 'qme_stage',
+        label: 'Has a Qualified Medical Evaluator (QME) or Agreed Medical Evaluator (AME) been involved?',
+        type: 'select',
+        options: [
+          'No — not involved yet',
+          'Requested — waiting for panel from DWC',
+          'Panel received — I still need to choose a doctor (10-day deadline)',
+          'Appointment scheduled — exam upcoming',
+          'Exam completed — awaiting or received the report',
+          'Unknown / unsure',
+        ],
+        required: true,
+      },
+      {
+        key: 'qme_findings',
+        label: 'Briefly describe the QME / AME outcome — did the evaluator agree with your treating doctor?',
+        type: 'textarea',
+        conditionKey: 'qme_stage', conditionValue: 'Exam completed — awaiting or received the report',
+        placeholder: 'e.g. QME agreed with treating doctor — or — QME found a lesser injury and gave a 5% PD rating…',
+        required: false,
+      },
+      {
+        key: 'ps_declared',
+        label: 'Has your treating doctor declared you Permanent & Stationary (P&S) — meaning your condition has stabilized and further treatment won\'t significantly improve it?',
+        type: 'yesno', includeUnsure: true,
+        required: true,
+      },
+    ],
+  },
+  {
+    idx: 6, type: 'chat',
     text: "Was anyone else present when the injury occurred — coworkers, supervisors, or bystanders? If so, please share their names and contact information if you have it.",
   },
   {
-    idx: 6, type: 'form', topic: 'Prior Injury History',
+    idx: 7, type: 'form', topic: 'Prior Injury History',
     intro: "One question about prior injuries.",
     fields: [
       { key: 'has_prior',     label: 'Prior injuries, accidents, or pre-existing conditions to the same body part?', type: 'yesno',    includeUnsure: true, required: true },
@@ -267,7 +335,7 @@ const QUESTIONS_EN = [
     ],
   },
   {
-    idx: 7, type: 'form', topic: 'Current Employment Status',
+    idx: 8, type: 'form', topic: 'Current Employment Status',
     intro: "What is your current work situation?",
     fields: [
       { key: 'status',             label: 'Current status',                              type: 'select',   options: ['Still working — same position', 'Modified / light duty', 'Terminated', 'Resigned / quit', 'On medical leave', 'Other'], required: true },
@@ -276,7 +344,7 @@ const QUESTIONS_EN = [
     ],
   },
   {
-    idx: 8, type: 'form', topic: 'Recorded Statements',
+    idx: 9, type: 'form', topic: 'Recorded Statements',
     intro: "Last question — regarding any statements you may have provided.",
     fields: [
       { key: 'statement_given',   label: 'Have you given a recorded or written statement to the insurance company or your employer?', type: 'yesno',    includeUnsure: true, required: true },
@@ -334,11 +402,79 @@ const QUESTIONS_ES = [
     ],
   },
   {
-    idx: 5, type: 'chat',
+    idx: 5, type: 'form', topic: 'Estado del reclamo y disputas médicas',
+    intro: 'Algunas preguntas sobre la respuesta de la aseguradora y si ha habido alguna evaluación médica independiente.',
+    fields: [
+      {
+        key: 'claim_status',
+        label: '¿Ha emitido la aseguradora una decisión sobre su reclamo?',
+        type: 'select',
+        options: ['Aceptado (responsabilidad admitida)', 'Denegado', 'En investigación — sin decisión aún', 'No sé / no estoy seguro/a'],
+        required: true,
+      },
+      {
+        key: 'denial_reason',
+        label: '¿Qué razón le dieron para denegar el reclamo?',
+        type: 'textarea',
+        conditionKey: 'claim_status', conditionValue: 'Denegado',
+        placeholder: 'ej. "La lesión no está relacionada con el trabajo" o "No reportó a tiempo"…',
+        required: false,
+      },
+      {
+        key: 'treating_type',
+        label: '¿Quién es su médico tratante actual?',
+        type: 'select',
+        options: [
+          'Médico asignado por el empleador (MPN)',
+          'Mi propio médico personal predesignado',
+          'Solo atención de urgencias — sin médico tratante permanente',
+          'Sin tratamiento aún',
+          'No sé / no estoy seguro/a',
+        ],
+        required: true,
+      },
+      {
+        key: 'treatment_denied',
+        label: '¿Ha denegado o retrasado la aseguradora algún tratamiento recomendado por su médico?',
+        type: 'yesno', includeUnsure: true,
+        required: true,
+      },
+      {
+        key: 'qme_stage',
+        label: '¿Se ha involucrado un Evaluador Médico Calificado (QME) o un Evaluador Médico Acordado (AME)?',
+        type: 'select',
+        options: [
+          'No — aún no',
+          'Solicitado — esperando el panel del DWC',
+          'Panel recibido — debo elegir un médico (plazo de 10 días)',
+          'Cita programada — examen próximo',
+          'Examen completado — esperando o recibido el informe',
+          'No sé / no estoy seguro/a',
+        ],
+        required: true,
+      },
+      {
+        key: 'qme_findings',
+        label: '¿El evaluador estuvo de acuerdo con su médico tratante? Describa brevemente el resultado.',
+        type: 'textarea',
+        conditionKey: 'qme_stage', conditionValue: 'Examen completado — esperando o recibido el informe',
+        placeholder: 'ej. El QME estuvo de acuerdo con el médico tratante — o — El QME encontró una lesión menor y dio 5% de discapacidad permanente…',
+        required: false,
+      },
+      {
+        key: 'ps_declared',
+        label: '¿Ha declarado su médico tratante que está Permanente y Estacionario (P&S) — es decir, que su condición se ha estabilizado y el tratamiento adicional no la mejorará significativamente?',
+        type: 'yesno', includeUnsure: true,
+        required: true,
+      },
+    ],
+  },
+  {
+    idx: 6, type: 'chat',
     text: "¿Había otras personas presentes cuando ocurrió la lesión — compañeros de trabajo, supervisores o testigos? Si es así, por favor comparta sus nombres e información de contacto si la tiene.",
   },
   {
-    idx: 6, type: 'form', topic: 'Historial de lesiones previas',
+    idx: 7, type: 'form', topic: 'Historial de lesiones previas',
     intro: "Una pregunta sobre lesiones anteriores.",
     fields: [
       { key: 'has_prior',     label: '¿Ha tenido lesiones, accidentes o condiciones previas en la misma parte del cuerpo?', type: 'yesno',    includeUnsure: true, required: true },
@@ -346,7 +482,7 @@ const QUESTIONS_ES = [
     ],
   },
   {
-    idx: 7, type: 'form', topic: 'Situación laboral actual',
+    idx: 8, type: 'form', topic: 'Situación laboral actual',
     intro: "¿Cuál es su situación laboral actual?",
     fields: [
       { key: 'status',             label: 'Estado actual',                              type: 'select',   options: ['Trabajando — mismo puesto', 'Trabajo modificado / labores ligeras', 'Despedido/a', 'Renunció', 'En licencia médica', 'Otro'], required: true },
@@ -355,7 +491,7 @@ const QUESTIONS_ES = [
     ],
   },
   {
-    idx: 8, type: 'form', topic: 'Declaraciones grabadas',
+    idx: 9, type: 'form', topic: 'Declaraciones grabadas',
     intro: "Última pregunta — sobre declaraciones que haya dado.",
     fields: [
       { key: 'statement_given',   label: '¿Ha dado una declaración grabada o escrita a la aseguradora o a su empleador?', type: 'yesno',    includeUnsure: true, required: true },
