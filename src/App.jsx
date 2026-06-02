@@ -226,6 +226,20 @@ VIABILITY SCORING:
 - 0–39  → "Declined": Multiple serious issues, or client is a 1099 contractor` }
 
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function extractCaseSummary(text) {
+  const match = text.match(/<case_summary>([\s\S]*?)<\/case_summary>/)
+  if (!match) return { displayText: text, summary: null }
+  try {
+    const summary = JSON.parse(match[1].trim())
+    const displayText = text.replace(/<case_summary>[\s\S]*?<\/case_summary>/, '').trim()
+    return { displayText, summary }
+  } catch {
+    return { displayText: text, summary: null }
+  }
+}
+
 // ─── TypingIndicator ──────────────────────────────────────────────────────────
 
 function TypingIndicator() {

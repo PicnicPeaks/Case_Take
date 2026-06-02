@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'docs',
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        assetFileNames: 'assets/[name][extname]',
+      },
+    },
   },
   server: {
     host: true,
