@@ -1312,7 +1312,7 @@ export default function App({ firm = null }) {
             <span>✅ {t[language].intakeComplete}</span>
             {caseId && (
               <a
-                href={`?case=${caseId}`}
+                href={firm?.slug ? `?firm=${encodeURIComponent(firm.slug)}&case=${caseId}` : `?case=${caseId}`}
                 target="_blank"
                 rel="noreferrer"
                 style={{

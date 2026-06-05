@@ -9,8 +9,9 @@ const CORS = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  const url    = new URL(req.url)
-  const id     = url.searchParams.get('id')
+  const url       = new URL(req.url)
+  const id        = url.searchParams.get('id')
+  const firmSlug  = url.searchParams.get('firm_slug') ?? null
 
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing id parameter' }), {
@@ -25,11 +26,18 @@ serve(async (req) => {
 
   const { data, error } = await supabase
     .from('intakes')
-    .select('id, summary, status, fluent_case_id, created_at')
+    .select('id, summary, status, fluent_case_id, firm_slug, created_at')
     .eq('id', id)
     .single()
 
   if (error || !data) {
+    return new Response(JSON.stringify({ error: 'Case not found' }), {
+      status: 404, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // If caller supplied a firm_slug, verify it matches the intake's firm
+  if (firmSlug && data.firm_slug !== firmSlug) {
     return new Response(JSON.stringify({ error: 'Case not found' }), {
       status: 404, headers: { ...CORS, 'Content-Type': 'application/json' },
     })

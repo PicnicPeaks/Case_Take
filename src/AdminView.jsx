@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { adminListFirms, adminCreateFirm, adminDeleteFirm } from './supabase.js'
+import { adminListFirms, adminCreateFirm, adminUpdateFirm, adminDeleteFirm } from './supabase.js'
 
 const NAVY = '#1a2e4a'
 
@@ -23,6 +23,12 @@ export default function AdminView() {
     primary_color: '#1a2e4a', intake_emails: '',
     from_email: '', from_name: '',
   })
+
+  // Edit form
+  const [editingSlug, setEditingSlug] = useState(null)
+  const [editForm,    setEditForm]    = useState({})
+  const [saving,      setSaving]      = useState(false)
+  const [saveErr,     setSaveErr]     = useState('')
 
   const loadFirms = async (tok) => {
     setLoading(true)
@@ -85,9 +91,41 @@ export default function AdminView() {
     }
   }
 
+  const startEdit = (firm) => {
+    setEditingSlug(firm.slug)
+    setSaveErr('')
+    setEditForm({
+      name:          firm.name          ?? '',
+      tagline:       firm.tagline       ?? '',
+      logo_url:      firm.logo_url      ?? '',
+      primary_color: firm.primary_color ?? '#1a2e4a',
+      intake_emails: (firm.intake_emails ?? []).join(', '),
+      from_email:    firm.from_email    ?? '',
+      from_name:     firm.from_name     ?? '',
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    setSaving(true)
+    setSaveErr('')
+    const fields = {
+      ...editForm,
+      intake_emails: editForm.intake_emails.split(',').map(e => e.trim()).filter(Boolean),
+    }
+    const res = await adminUpdateFirm(token, editingSlug, fields)
+    setSaving(false)
+    if (res.success) {
+      setEditingSlug(null)
+      loadFirms(token)
+    } else {
+      setSaveErr(res.error ?? 'Failed to save.')
+    }
+  }
+
   const handleDelete = async (slug) => {
     if (!window.confirm(`Delete firm "${slug}"? This cannot be undone.`)) return
     await adminDeleteFirm(token, slug)
+    if (editingSlug === slug) setEditingSlug(null)
     loadFirms(token)
   }
 
@@ -268,60 +306,145 @@ export default function AdminView() {
                 </tr>
               </thead>
               <tbody>
-                {firms.map((firm, i) => (
-                  <tr key={firm.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        {firm.logo_url
-                          ? <img src={firm.logo_url} alt="" style={{ height: 24, objectFit: 'contain' }} />
-                          : <div style={{ width: 24, height: 24, borderRadius: 4, background: firm.primary_color ?? NAVY }} />
-                        }
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 13.5, color: '#111827' }}>{firm.name}</div>
-                          {firm.tagline && <div style={{ fontSize: 11, color: '#9ca3af' }}>{firm.tagline}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <code style={{ fontSize: 12, background: '#f3f4f6', borderRadius: 5, padding: '2px 7px', color: '#374151' }}>
-                        {firm.slug}
-                      </code>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>
-                        {firm.intake_emails?.length
-                          ? firm.intake_emails.slice(0, 2).join(', ') + (firm.intake_emails.length > 2 ? ` +${firm.intake_emails.length - 2}` : '')
-                          : <span style={{ color: '#d1d5db' }}>—</span>
-                        }
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: 4, background: firm.primary_color ?? NAVY, border: '1px solid #e5e7eb' }} />
-                        <code style={{ fontSize: 11, color: '#6b7280' }}>{firm.primary_color ?? NAVY}</code>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>
-                      {new Date(firm.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        <a href={`/?firm=${firm.slug}`} target="_blank" rel="noreferrer"
-                          style={linkBtn('#eff6ff', '#1d4ed8')}>Intake</a>
-                        <a href={`/?firm=${firm.slug}&view=dashboard`} target="_blank" rel="noreferrer"
-                          style={linkBtn('#f0fdf4', '#15803d')}>Dashboard</a>
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(firm.settings_token); alert('Settings token copied!') }}
-                          style={linkBtn('#fefce8', '#a16207')}
-                        >Copy Token</button>
-                        <button
-                          onClick={() => handleDelete(firm.slug)}
-                          style={linkBtn('#fef2f2', '#dc2626')}
-                        >Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {firms.map((firm, i) => {
+                  const isEditing = editingSlug === firm.slug
+                  return (
+                    <>
+                      <tr key={firm.id} style={{ borderBottom: isEditing ? 'none' : '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                            {firm.logo_url
+                              ? <img src={firm.logo_url} alt="" style={{ height: 24, objectFit: 'contain' }} />
+                              : <div style={{ width: 24, height: 24, borderRadius: 4, background: firm.primary_color ?? NAVY }} />
+                            }
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 13.5, color: '#111827' }}>{firm.name}</div>
+                              {firm.tagline && <div style={{ fontSize: 11, color: '#9ca3af' }}>{firm.tagline}</div>}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <code style={{ fontSize: 12, background: '#f3f4f6', borderRadius: 5, padding: '2px 7px', color: '#374151' }}>
+                            {firm.slug}
+                          </code>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ fontSize: 12, color: '#6b7280' }}>
+                            {firm.intake_emails?.length
+                              ? firm.intake_emails.slice(0, 2).join(', ') + (firm.intake_emails.length > 2 ? ` +${firm.intake_emails.length - 2}` : '')
+                              : <span style={{ color: '#d1d5db' }}>—</span>
+                            }
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: 4, background: firm.primary_color ?? NAVY, border: '1px solid #e5e7eb' }} />
+                            <code style={{ fontSize: 11, color: '#6b7280' }}>{firm.primary_color ?? NAVY}</code>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                          {new Date(firm.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <a href={`/?firm=${firm.slug}`} target="_blank" rel="noreferrer"
+                              style={linkBtn('#eff6ff', '#1d4ed8')}>Intake</a>
+                            <a href={`/?firm=${firm.slug}&view=dashboard`} target="_blank" rel="noreferrer"
+                              style={linkBtn('#f0fdf4', '#15803d')}>Dashboard</a>
+                            <button
+                              onClick={() => isEditing ? setEditingSlug(null) : startEdit(firm)}
+                              style={linkBtn(isEditing ? '#f3f4f6' : '#f0f4ff', isEditing ? '#6b7280' : '#4f46e5')}
+                            >{isEditing ? 'Cancel' : 'Edit'}</button>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(firm.settings_token); alert('Settings token copied!') }}
+                              style={linkBtn('#fefce8', '#a16207')}
+                            >Copy Token</button>
+                            <button
+                              onClick={() => handleDelete(firm.slug)}
+                              style={linkBtn('#fef2f2', '#dc2626')}
+                            >Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* ── Inline edit panel ── */}
+                      {isEditing && (
+                        <tr key={`${firm.id}-edit`}>
+                          <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid #f3f4f6' }}>
+                            <div style={{
+                              background: '#f8f9ff', borderTop: '2px solid #4f46e5',
+                              padding: '20px 24px',
+                            }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: '#4f46e5', marginBottom: 16 }}>
+                                Editing — {firm.slug}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                                {[
+                                  ['name',          'Firm Name *',          'Smith & Associates'],
+                                  ['tagline',        'Tagline',              "California Workers' Comp"],
+                                  ['logo_url',       'Logo URL',             'https://...'],
+                                  ['primary_color',  'Brand Color',          '#1a2e4a'],
+                                  ['intake_emails',  'Notification Emails',  'a@firm.com, b@firm.com'],
+                                  ['from_email',     'From Email',           'intakes@firm.com'],
+                                  ['from_name',      'From Name',            'Smith & Associates'],
+                                ].map(([key, label, ph]) => (
+                                  <div key={key}>
+                                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                                      {label}
+                                    </label>
+                                    {key === 'primary_color' ? (
+                                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <input type="color" value={editForm[key]}
+                                          onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                          style={{ width: 38, height: 34, borderRadius: 6, border: '1.5px solid #e5e7eb', cursor: 'pointer', padding: 2 }} />
+                                        <input value={editForm[key]}
+                                          onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                          style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                                          onFocus={e => (e.target.style.borderColor = NAVY)}
+                                          onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+                                        <div style={{ width: 30, height: 30, borderRadius: 6, background: editForm.primary_color, border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                                      </div>
+                                    ) : (
+                                      <input
+                                        value={editForm[key] ?? ''}
+                                        onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                        placeholder={ph}
+                                        style={{ ...inputStyle, fontSize: 13 }}
+                                        onFocus={e => (e.target.style.borderColor = NAVY)}
+                                        onBlur={e  => (e.target.style.borderColor = '#e5e7eb')}
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {saveErr && (
+                                <div style={{ color: '#dc2626', fontSize: 12.5, marginTop: 10 }}>⚠️ {saveErr}</div>
+                              )}
+                              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                                <button
+                                  onClick={handleSaveEdit}
+                                  disabled={saving}
+                                  style={{
+                                    background: saving ? '#9ca3af' : '#4f46e5', color: 'white',
+                                    border: 'none', borderRadius: 8, padding: '9px 24px',
+                                    fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+                                  }}
+                                >{saving ? 'Saving…' : 'Save Changes'}</button>
+                                <button
+                                  onClick={() => setEditingSlug(null)}
+                                  style={{
+                                    background: 'white', color: '#6b7280', border: '1.5px solid #e5e7eb',
+                                    borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                  }}
+                                >Cancel</button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
               </tbody>
             </table>
           )}

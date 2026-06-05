@@ -60,19 +60,22 @@ export async function saveFeedback({ rating, comment, snippet }) {
 
 // ── Case review ────────────────────────────────────────────────────────────────
 
-/** Fetch a case summary by UUID for the review view. */
-export async function getCaseSummary(id) {
-  return callFunction('get-case', 'GET', null, `?id=${encodeURIComponent(id)}`)
+/** Fetch a case summary by UUID for the review view. Optionally scoped to a firm. */
+export async function getCaseSummary(id, firmSlug = null) {
+  const qs = firmSlug
+    ? `?id=${encodeURIComponent(id)}&firm_slug=${encodeURIComponent(firmSlug)}`
+    : `?id=${encodeURIComponent(id)}`
+  return callFunction('get-case', 'GET', null, qs)
 }
 
 /** Accept a case — POSTs to Fluent Case API and marks accepted. */
-export async function acceptCase(id) {
-  return callFunction('accept-case', 'POST', { id })
+export async function acceptCase(id, firmSlug = null) {
+  return callFunction('accept-case', 'POST', { id, ...(firmSlug ? { firm_slug: firmSlug } : {}) })
 }
 
 /** Reject a case — marks rejected in the DB. */
-export async function rejectCase(id, reason = '') {
-  return callFunction('reject-case', 'POST', { id, reason })
+export async function rejectCase(id, reason = '', firmSlug = null) {
+  return callFunction('reject-case', 'POST', { id, reason, ...(firmSlug ? { firm_slug: firmSlug } : {}) })
 }
 
 /** Fetch intakes, optionally scoped to a firm. */
@@ -99,6 +102,11 @@ export async function adminListFirms(adminToken) {
 /** Admin: create a firm. */
 export async function adminCreateFirm(adminToken, firmData) {
   return callFunction('firm-admin', 'POST', { admin_token: adminToken, ...firmData })
+}
+
+/** Admin: update a firm. */
+export async function adminUpdateFirm(adminToken, slug, fields) {
+  return callFunction('firm-admin', 'PUT', { admin_token: adminToken, slug, ...fields })
 }
 
 /** Admin: delete a firm. */

@@ -83,7 +83,7 @@ export default function Router() {
 
   if (view === 'settings')  return <FirmSettings firmSlug={firmSlug} />
   if (view === 'dashboard') return <DashboardView firm={firm} />
-  if (caseId)               return <CaseSummaryView caseId={caseId} />
+  if (caseId)               return <CaseSummaryView caseId={caseId} firmSlug={firmSlug} />
 
   // Default: firm-branded intake
   return <App firm={firm} />

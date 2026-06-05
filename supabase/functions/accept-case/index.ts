@@ -73,14 +73,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   const fluentKey = Deno.env.get('FLUENT_CASE_API_KEY')
-  if (!fluentKey) {
-    return new Response(JSON.stringify({ error: 'Missing FLUENT_CASE_API_KEY' }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
-    })
-  }
 
   const body = await req.json().catch(() => ({}))
-  const { id } = body as { id?: string }
+  const { id, firm_slug: bodyFirmSlug } = body as { id?: string; firm_slug?: string }
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing case id' }), {
       status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
@@ -105,6 +100,13 @@ serve(async (req) => {
     })
   }
 
+  // Verify firm ownership if caller supplied firm_slug
+  if (bodyFirmSlug && intake.firm_slug !== bodyFirmSlug) {
+    return new Response(JSON.stringify({ error: 'Case not found' }), {
+      status: 404, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Idempotent — already accepted
   if (intake.status === 'accepted') {
     return new Response(
@@ -114,7 +116,7 @@ serve(async (req) => {
   }
 
   // ── Resolve which Fluent Case key to use (firm key takes priority) ───────
-  let activeFluentKey = fluentKey
+  let activeFluentKey = fluentKey ?? null
   if (intake.firm_slug) {
     const { data: firm } = await supabase
       .from('firms')

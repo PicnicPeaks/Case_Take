@@ -95,6 +95,37 @@ serve(async (req) => {
     })
   }
 
+  // ── PUT — update a firm ─────────────────────────────────────────────────
+  if (req.method === 'PUT') {
+    const body = await req.json().catch(() => ({}))
+    const { admin_token, slug, ...fields } = body
+    if (admin_token !== adminToken) return unauthorized()
+    if (!slug) {
+      return new Response(JSON.stringify({ error: 'slug is required' }), {
+        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const ALLOWED = new Set([
+      'name', 'tagline', 'logo_url', 'primary_color',
+      'intake_emails', 'from_email', 'from_name', 'fluent_case_api_key',
+    ])
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    for (const [k, v] of Object.entries(fields)) {
+      if (ALLOWED.has(k)) updates[k] = v
+    }
+
+    const { error } = await supabase.from('firms').update(updates).eq('slug', slug)
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
   // ── DELETE — remove a firm ───────────────────────────────────────────────
   if (req.method === 'DELETE') {
     const body  = await req.json().catch(() => ({}))

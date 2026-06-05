@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   const body = await req.json().catch(() => ({}))
-  const { id, reason } = body as { id?: string; reason?: string }
+  const { id, reason, firm_slug: bodyFirmSlug } = body as { id?: string; reason?: string; firm_slug?: string }
 
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing case id' }), {
@@ -25,11 +25,18 @@ serve(async (req) => {
 
   const { data: intake } = await supabase
     .from('intakes')
-    .select('id, status')
+    .select('id, status, firm_slug')
     .eq('id', id)
     .single()
 
   if (!intake) {
+    return new Response(JSON.stringify({ error: 'Case not found' }), {
+      status: 404, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Verify firm ownership if caller supplied firm_slug
+  if (bodyFirmSlug && intake.firm_slug !== bodyFirmSlug) {
     return new Response(JSON.stringify({ error: 'Case not found' }), {
       status: 404, headers: { ...CORS, 'Content-Type': 'application/json' },
     })

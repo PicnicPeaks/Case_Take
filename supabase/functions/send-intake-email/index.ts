@@ -335,7 +335,9 @@ serve(async (req) => {
   const s        = (record?.summary ?? {}) as Record<string, unknown>
   const caseId   = record?.id   as string | undefined
   const firmSlug = record?.firm_slug as string | undefined
-  const reportUrl = caseId ? `${caseBaseUrl}?case=${caseId}` : null
+  const reportUrl = caseId
+    ? `${caseBaseUrl}?${firmSlug ? `firm=${encodeURIComponent(firmSlug)}&` : ''}case=${caseId}`
+    : null
 
   // ── Load firm config if this intake belongs to a firm ──────────────────
   let firmRecipients: string[] = firmEmail.split(',').map((e: string) => e.trim()).filter(Boolean)

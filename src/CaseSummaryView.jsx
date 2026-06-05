@@ -130,7 +130,7 @@ function StatusBanner({ status, fluentCaseId }) {
 
 // ── Main view ──────────────────────────────────────────────────────────────────
 
-export default function CaseSummaryView({ caseId }) {
+export default function CaseSummaryView({ caseId, firmSlug = null }) {
   const [caseData,   setCaseData]   = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [loadError,  setLoadError]  = useState(null)
@@ -139,21 +139,21 @@ export default function CaseSummaryView({ caseId }) {
   const [actionErr,  setActionErr]  = useState(null)
 
   useEffect(() => {
-    getCaseSummary(caseId)
+    getCaseSummary(caseId, firmSlug)
       .then(data => {
         if (data.error) setLoadError(data.error)
         else            setCaseData(data)
       })
       .catch(e => setLoadError(e.message))
       .finally(() => setLoading(false))
-  }, [caseId])
+  }, [caseId, firmSlug])
 
   const handleAccept = async () => {
     setConfirm(null)
     setActionBusy(true)
     setActionErr(null)
     try {
-      const res = await acceptCase(caseId)
+      const res = await acceptCase(caseId, firmSlug)
       if (res.error) {
         setActionErr(res.error + (res.details ? ` — ${JSON.stringify(res.details)}` : ''))
       } else {
@@ -175,7 +175,7 @@ export default function CaseSummaryView({ caseId }) {
     setActionBusy(true)
     setActionErr(null)
     try {
-      const res = await rejectCase(caseId)
+      const res = await rejectCase(caseId, '', firmSlug)
       if (res.error) {
         setActionErr(res.error)
       } else {

@@ -66,13 +66,15 @@ function StatCard({ label, value, sub, accent }) {
 
 // ── Row ────────────────────────────────────────────────────────────────────────
 
-function IntakeRow({ intake, isEven }) {
+function IntakeRow({ intake, isEven, firmSlug = null }) {
   const [hovered, setHovered] = useState(false)
   const label  = intake.viability_label ?? ''
   const color  = VIA_COLOR[label]  ?? '#9ca3af'
   const bg     = VIA_BG[label]     ?? '#f9fafb'
   const ss     = STATUS_STYLE[intake.status] ?? STATUS_STYLE.pending
-  const caseUrl = `?case=${intake.id}`
+  const caseUrl = firmSlug
+    ? `?firm=${encodeURIComponent(firmSlug)}&case=${intake.id}`
+    : `?case=${intake.id}`
 
   return (
     <tr
@@ -458,7 +460,7 @@ export default function DashboardView({ firm = null }) {
                 {rows.length === 0
                   ? <EmptyState filtered={tab !== 'all' || search.trim() !== ''} />
                   : rows.map((intake, i) => (
-                    <IntakeRow key={intake.id} intake={intake} isEven={i % 2 === 0} />
+                    <IntakeRow key={intake.id} intake={intake} isEven={i % 2 === 0} firmSlug={firm?.slug ?? null} />
                   ))
                 }
               </tbody>
