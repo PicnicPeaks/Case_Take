@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { saveCase, saveFeedback } from './supabase.js'
 import { t, getQuestions } from './translations.js'
 import CaseSummaryView from './CaseSummaryView.jsx'
+import DashboardView from './DashboardView.jsx'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -1022,10 +1023,11 @@ function LandingScreen({ onStart, language }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // ── Case review route — ?case=<uuid> ──────────────────────────────────────
+  // ── Route by URL param ─────────────────────────────────────────────────────
   const _params  = new URLSearchParams(window.location.search)
   const _caseId  = _params.get('case')
   if (_caseId) return <CaseSummaryView caseId={_caseId} />
+  if (_params.has('dashboard')) return <DashboardView />
 
   const showAbout = _params.has('about')
 
