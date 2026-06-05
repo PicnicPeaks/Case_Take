@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -332,16 +333,45 @@ serve(async (req) => {
   const payload  = await req.json()
   const record   = payload.record
   const s        = (record?.summary ?? {}) as Record<string, unknown>
-  const caseId   = record?.id as string | undefined
+  const caseId   = record?.id   as string | undefined
+  const firmSlug = record?.firm_slug as string | undefined
   const reportUrl = caseId ? `${caseBaseUrl}?case=${caseId}` : null
+
+  // ── Load firm config if this intake belongs to a firm ──────────────────
+  let firmRecipients: string[] = firmEmail.split(',').map((e: string) => e.trim()).filter(Boolean)
+  let effectiveFrom  = fromEmail
+
+  if (firmSlug) {
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      )
+      const { data: firm } = await supabase
+        .from('firms')
+        .select('intake_emails, from_email, from_name, name')
+        .eq('slug', firmSlug)
+        .single()
+
+      if (firm) {
+        if (firm.intake_emails?.length) firmRecipients = firm.intake_emails
+        if (firm.from_email) {
+          effectiveFrom = firm.from_name
+            ? `${firm.from_name} <${firm.from_email}>`
+            : firm.from_email
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load firm config:', e)
+    }
+  }
 
   const results: Record<string, unknown> = {}
 
-  // ── Firm email (always) — supports comma-separated recipients ──
-  const firmRecipients = firmEmail.split(',').map(e => e.trim()).filter(Boolean)
+  // ── Firm email (always) ────────────────────────────────────────────────────
   results.firm = await send(
     resendKey,
-    fromEmail,
+    effectiveFrom,
     firmRecipients,
     `New Intake: ${s.claimant} — ${s.viability_label} (${s.viability_score})`,
     buildFirmHtml(s, reportUrl),
@@ -352,7 +382,7 @@ serve(async (req) => {
   if (clientEmail && clientEmail !== 'None provided' && clientEmail.includes('@')) {
     results.client = await send(
       resendKey,
-      fromEmail,
+      effectiveFrom,
       clientEmail,
       "Your Workers' Comp Intake Has Been Received",
       buildClientHtml(s),

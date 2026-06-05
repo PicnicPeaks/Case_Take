@@ -95,7 +95,7 @@ serve(async (req) => {
   // ── Fetch intake ──────────────────────────────────────────────────────────
   const { data: intake, error: fetchErr } = await supabase
     .from('intakes')
-    .select('id, summary, status, fluent_case_id')
+    .select('id, summary, status, fluent_case_id, firm_slug')
     .eq('id', id)
     .single()
 
@@ -113,11 +113,28 @@ serve(async (req) => {
     )
   }
 
+  // ── Resolve which Fluent Case key to use (firm key takes priority) ───────
+  let activeFluentKey = fluentKey
+  if (intake.firm_slug) {
+    const { data: firm } = await supabase
+      .from('firms')
+      .select('fluent_case_api_key')
+      .eq('slug', intake.firm_slug)
+      .single()
+    if (firm?.fluent_case_api_key) activeFluentKey = firm.fluent_case_api_key
+  }
+
+  if (!activeFluentKey) {
+    return new Response(JSON.stringify({ error: 'No Fluent Case API key configured' }), {
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
   // ── POST to Fluent Case ───────────────────────────────────────────────────
   const payload   = buildFluentPayload(intake.summary as Record<string, unknown>)
   const fluentRes = await fetch('https://app.fluentcase.com/api/matters', {
     method:  'POST',
-    headers: { 'Authorization': `Bearer ${fluentKey}`, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${activeFluentKey}`, 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload),
   })
 

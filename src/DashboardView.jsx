@@ -195,18 +195,20 @@ const SORT_OPTIONS = [
   { value: 'score_lo',  label: 'Score: low → high' },
 ]
 
-export default function DashboardView() {
+export default function DashboardView({ firm = null }) {
+  const BRAND = firm?.primary_color ?? NAVY
+
   const [intakes,  setIntakes]  = useState([])
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState(null)
-  const [tab,      setTab]      = useState('all')       // 'all' | 'pending' | 'accepted' | 'rejected'
+  const [tab,      setTab]      = useState('all')
   const [search,   setSearch]   = useState('')
   const [sort,     setSort]     = useState('newest')
   const [lastRefresh, setLastRefresh] = useState(Date.now())
 
   const load = () => {
     setLoading(true)
-    getIntakes()
+    getIntakes(firm?.slug ?? null)
       .then(data => {
         if (Array.isArray(data)) setIntakes(data)
         else setError(data.error ?? 'Failed to load intakes')
@@ -256,14 +258,14 @@ export default function DashboardView() {
       <button
         onClick={() => setTab(value)}
         style={{
-          background:  active ? NAVY : 'transparent',
+          background:  active ? BRAND : 'transparent',
           color:       active ? 'white' : '#6b7280',
-          border:      active ? `1.5px solid ${NAVY}` : '1.5px solid #e5e7eb',
+          border:      active ? `1.5px solid ${BRAND}` : '1.5px solid #e5e7eb',
           borderRadius: 8, padding: '7px 16px', fontSize: 13,
           fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7,
           transition: 'all 0.12s',
         }}
-        onMouseOver={e => !active && (e.currentTarget.style.borderColor = NAVY)}
+        onMouseOver={e => !active && (e.currentTarget.style.borderColor = BRAND)}
         onMouseOut={e  => !active && (e.currentTarget.style.borderColor = '#e5e7eb')}
       >
         {label}
@@ -286,21 +288,31 @@ export default function DashboardView() {
 
       {/* ── Header ── */}
       <header style={{
-        background: NAVY,
+        background: BRAND,
         padding: '0 28px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         height: 60, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 9,
-              background: 'rgba(255,255,255,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-            }}>⚖️</div>
+          <a
+            href={firm ? `/?firm=${firm.slug}` : '/'}
+            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
+          >
+            {firm?.logo_url
+              ? <img src={firm.logo_url} alt={firm.name} style={{ height: 32, objectFit: 'contain' }} />
+              : <div style={{
+                  width: 36, height: 36, borderRadius: 9,
+                  background: 'rgba(255,255,255,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                }}>⚖️</div>
+            }
             <div>
-              <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1 }}>CaseTake</div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10.5 }}>California • Workers' Comp</div>
+              <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
+                {firm?.name ?? 'CaseTake'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10.5 }}>
+                {firm?.tagline ?? "California • Workers' Comp"}
+              </div>
             </div>
           </a>
           <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.15)', margin: '0 6px' }} />
@@ -324,9 +336,9 @@ export default function DashboardView() {
             }}
           >{loading ? '⟳ Loading…' : '⟳ Refresh'}</button>
           <a
-            href="/"
+            href={firm ? `/?firm=${firm.slug}` : '/'}
             style={{
-              background: 'white', color: NAVY,
+              background: 'white', color: BRAND,
               border: 'none', borderRadius: 7,
               padding: '6px 16px', fontSize: 12.5, fontWeight: 700,
               cursor: 'pointer', textDecoration: 'none',

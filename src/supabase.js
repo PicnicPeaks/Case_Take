@@ -26,7 +26,7 @@ async function callFunction(name, method = 'GET', body = null, queryParams = '')
 // ── Intake ─────────────────────────────────────────────────────────────────────
 
 /** Save a completed intake. Returns { success, id } — id is the UUID for the case view URL. */
-export async function saveCase(summary, chatLog) {
+export async function saveCase(summary, chatLog, firmSlug = null) {
   const { data, error } = await supabase
     .from('intakes')
     .insert({
@@ -37,7 +37,8 @@ export async function saveCase(summary, chatLog) {
       viability_score: summary.viability_score,
       viability_label: summary.viability_label,
       summary,
-      chat_log: chatLog,
+      chat_log:  chatLog,
+      firm_slug: firmSlug ?? null,
     })
     .select('id')
     .single()
@@ -74,7 +75,33 @@ export async function rejectCase(id, reason = '') {
   return callFunction('reject-case', 'POST', { id, reason })
 }
 
-/** Fetch all intakes for the dashboard. */
-export async function getIntakes() {
-  return callFunction('get-intakes', 'GET')
+/** Fetch intakes, optionally scoped to a firm. */
+export async function getIntakes(firmSlug = null) {
+  const qs = firmSlug ? `?firm_slug=${encodeURIComponent(firmSlug)}` : ''
+  return callFunction('get-intakes', 'GET', null, qs)
+}
+
+/** Fetch public firm config by slug. */
+export async function getFirm(slug) {
+  return callFunction('get-firm', 'GET', null, `?slug=${encodeURIComponent(slug)}`)
+}
+
+/** Update firm settings (requires settings_token). */
+export async function updateFirm(slug, settingsToken, fields) {
+  return callFunction('update-firm', 'POST', { slug, settings_token: settingsToken, ...fields })
+}
+
+/** Admin: list all firms. */
+export async function adminListFirms(adminToken) {
+  return callFunction('firm-admin', 'GET', null, `?admin_token=${encodeURIComponent(adminToken)}`)
+}
+
+/** Admin: create a firm. */
+export async function adminCreateFirm(adminToken, firmData) {
+  return callFunction('firm-admin', 'POST', { admin_token: adminToken, ...firmData })
+}
+
+/** Admin: delete a firm. */
+export async function adminDeleteFirm(adminToken, slug) {
+  return callFunction('firm-admin', 'DELETE', { admin_token: adminToken, slug })
 }

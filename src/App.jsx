@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { saveCase, saveFeedback } from './supabase.js'
 import { t, getQuestions } from './translations.js'
-import CaseSummaryView from './CaseSummaryView.jsx'
-import DashboardView from './DashboardView.jsx'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -933,30 +931,37 @@ function ScriptedQuestionBubble({ question, language }) {
 
 // ─── LandingScreen ────────────────────────────────────────────────────────────
 
-function LandingScreen({ onStart, language }) {
-  const L = t[language].landing
+function LandingScreen({ onStart, language, firm = null }) {
+  const L    = t[language].landing
+  const BRAND = firm?.primary_color ?? NAVY
 
   return (
     <div style={{ minHeight: '100svh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       {/* Top nav */}
       <nav style={{
-        background: NAVY, padding: '14px 24px',
+        background: BRAND, padding: '14px 24px',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <div style={{
           width: 38, height: 38, borderRadius: 9,
           background: 'rgba(255,255,255,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-        }}>⚖️</div>
+        }}>
+          {firm?.logo_url
+            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
+            : '⚖️'}
+        </div>
         <div>
-          <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>CaseTake</div>
+          <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
+            {firm?.name ?? 'CaseTake'}
+          </div>
           <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
         </div>
       </nav>
 
       {/* Hero */}
       <div style={{
-        background: `linear-gradient(150deg, ${NAVY} 0%, ${NAVY_LIGHT} 100%)`,
+        background: `linear-gradient(150deg, ${BRAND} 0%, ${BRAND} 100%)`,
         padding: 'clamp(40px,8vw,80px) 24px',
         textAlign: 'center', color: 'white',
       }}>
@@ -1022,12 +1027,12 @@ function LandingScreen({ onStart, language }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-export default function App() {
-  // ── Route by URL param ─────────────────────────────────────────────────────
-  const _params  = new URLSearchParams(window.location.search)
-  const _caseId  = _params.get('case')
-  if (_caseId) return <CaseSummaryView caseId={_caseId} />
-  if (_params.has('dashboard')) return <DashboardView />
+export default function App({ firm = null }) {
+  // Firm-aware brand values
+  const BRAND    = firm?.primary_color ?? NAVY
+  const BRAND_MID  = firm?.primary_color ?? NAVY_MID
+
+  // Routing is handled by Router.jsx — App only renders the intake UI
 
   const showAbout = _params.has('about')
 
@@ -1145,7 +1150,7 @@ export default function App() {
 
       if (summary) {
         // Case summary returned (e.g. 1099 hard stop mid-flow, or explicit trigger)
-        const { id } = await saveCase(summary, fullHistory)
+        const { id } = await saveCase(summary, fullHistory, firm?.slug ?? null)
         setCaseId(id)
         setShowBanner(true)
       } else if (hasNextQ) {
@@ -1175,7 +1180,7 @@ export default function App() {
             setMessages(prev => [...prev, { role: 'assistant', displayContent: sumText, msgId: `msg-${++msgCounterRef.current}` }])
           }
           if (finalSummary) {
-            const { id } = await saveCase(finalSummary, summaryHistory)
+            const { id } = await saveCase(finalSummary, summaryHistory, firm?.slug ?? null)
             setCaseId(id)
             setShowBanner(true)
           }
@@ -1244,7 +1249,7 @@ export default function App() {
   // ── Landing screen ─────────────────────────────────────────────────────────
   if (screen === 'landing') {
     return (
-      <LandingScreen onStart={startIntake} language={language} />
+      <LandingScreen onStart={startIntake} language={language} firm={firm} />
     )
   }
 
@@ -1254,16 +1259,23 @@ export default function App() {
 
       {/* Header */}
       <header style={{
-        background: NAVY, height: 58,
+        background: BRAND, height: 58,
         padding: '0 18px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>⚖️</span>
+          {firm?.logo_url
+            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 34, maxWidth: 120, objectFit: 'contain', borderRadius: 4 }} />
+            : <span style={{ fontSize: 20 }}>⚖️</span>
+          }
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>CaseTake</div>
-            <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 10.5, marginTop: 2 }}>California • Case Screening</div>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>
+              {firm?.name ?? 'CaseTake'}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 10.5, marginTop: 2 }}>
+              {firm?.tagline ?? 'California • Case Screening'}
+            </div>
           </div>
         </div>
 
