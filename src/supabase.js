@@ -73,3 +73,8 @@ export async function acceptCase(id) {
 export async function rejectCase(id, reason = '') {
   return callFunction('reject-case', 'POST', { id, reason })
 }
+
+/** Fetch all intakes for the dashboard. */
+export async function getIntakes() {
+  return callFunction('get-intakes', 'GET')
+}

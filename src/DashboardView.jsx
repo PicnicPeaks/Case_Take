@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { getIntakes } from './supabase.js'
 
 const NAVY       = '#1a2e4a'
 const NAVY_MID   = '#243d5e'
@@ -11,16 +12,6 @@ const STATUS_STYLE = {
   pending:  { bg: '#eff6ff', color: '#1d4ed8', label: 'Pending Review' },
   accepted: { bg: '#f0fdf4', color: '#15803d', label: 'Accepted' },
   rejected: { bg: '#fef2f2', color: '#dc2626', label: 'Rejected' },
-}
-
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3dGR1dmtvYmtmaGR6Y3h4amhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDc3NzcsImV4cCI6MjA5NTUyMzc3N30.TycC97P5M_WC2lfOoh-7zoOgYxDQd1iUAZsQzZlwvV4'
-const FUNCTIONS_BASE    = 'https://jwtduvkobkfhdzcxxjhm.supabase.co/functions/v1'
-
-async function fetchIntakes() {
-  const res = await fetch(`${FUNCTIONS_BASE}/get-intakes`, {
-    headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-  })
-  return res.json()
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -215,7 +206,7 @@ export default function DashboardView() {
 
   const load = () => {
     setLoading(true)
-    fetchIntakes()
+    getIntakes()
       .then(data => {
         if (Array.isArray(data)) setIntakes(data)
         else setError(data.error ?? 'Failed to load intakes')
