@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { saveCase } from './supabase.js'
+import { saveCase, saveFeedback } from './supabase.js'
 import { t, getQuestions } from './translations.js'
+import CaseSummaryView from './CaseSummaryView.jsx'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -1021,13 +1022,19 @@ function LandingScreen({ onStart, language }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const showAbout = new URLSearchParams(window.location.search).has('about')
+  // ── Case review route — ?case=<uuid> ──────────────────────────────────────
+  const _params  = new URLSearchParams(window.location.search)
+  const _caseId  = _params.get('case')
+  if (_caseId) return <CaseSummaryView caseId={_caseId} />
+
+  const showAbout = _params.has('about')
 
   const [screen,      setScreen]      = useState(showAbout ? 'landing' : 'chat')
   const [messages,    setMessages]    = useState([])   // { role, displayContent }
   const [input,       setInput]       = useState('')
   const [isLoading,   setIsLoading]   = useState(false)
   const [showBanner,  setShowBanner]  = useState(false)
+  const [caseId,      setCaseId]      = useState(null)   // UUID returned after save — for View Report link
   const [error,       setError]       = useState(null)
 
   const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
@@ -1136,7 +1143,8 @@ export default function App() {
 
       if (summary) {
         // Case summary returned (e.g. 1099 hard stop mid-flow, or explicit trigger)
-        saveCase(summary, fullHistory)
+        const { id } = await saveCase(summary, fullHistory)
+        setCaseId(id)
         setShowBanner(true)
       } else if (hasNextQ) {
         // AI is satisfied with the current topic — advance to next scripted question
@@ -1165,7 +1173,8 @@ export default function App() {
             setMessages(prev => [...prev, { role: 'assistant', displayContent: sumText, msgId: `msg-${++msgCounterRef.current}` }])
           }
           if (finalSummary) {
-            saveCase(finalSummary, summaryHistory)
+            const { id } = await saveCase(finalSummary, summaryHistory)
+            setCaseId(id)
             setShowBanner(true)
           }
         }
@@ -1183,6 +1192,7 @@ export default function App() {
     setMessages([])
     conversationRef.current = []
     setShowBanner(false)
+    setCaseId(null)
     setError(null)
     setInput('')
     preFormRef.current     = null
@@ -1213,6 +1223,7 @@ export default function App() {
     setMessages([])
     conversationRef.current = []
     setShowBanner(false)
+    setCaseId(null)
     setShowPreForm(false)
     preFormRef.current     = null
     scriptedIdxRef.current = -1
@@ -1283,12 +1294,26 @@ export default function App() {
         <div style={{
           background: '#16a34a', color: 'white',
           padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          fontSize: 13.5, flexShrink: 0, animation: 'bannerSlide .3s ease',
+          fontSize: 13.5, flexShrink: 0, animation: 'bannerSlide .3s ease', gap: 10,
         }}>
-          <span>✅ {t[language].intakeComplete}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span>✅ {t[language].intakeComplete}</span>
+            {caseId && (
+              <a
+                href={`?case=${caseId}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: 'white', fontWeight: 700, fontSize: 13,
+                  background: 'rgba(255,255,255,0.2)', borderRadius: 6,
+                  padding: '3px 11px', textDecoration: 'none', whiteSpace: 'nowrap',
+                }}
+              >View Report →</a>
+            )}
+          </div>
           <button
             onClick={() => setShowBanner(false)}
-            style={{ background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 19, lineHeight: 1 }}
+            style={{ background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 19, lineHeight: 1, flexShrink: 0 }}
           >×</button>
         </div>
       )}

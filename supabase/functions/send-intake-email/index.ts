@@ -49,7 +49,7 @@ function section(icon: string, title: string, body: string): string {
 
 // ── Firm email — full intake report ────────────────────────────────────────────
 
-function buildFirmHtml(s: Record<string, unknown>): string {
+function buildFirmHtml(s: Record<string, unknown>, reportUrl?: string | null): string {
   const label  = String(s.viability_label ?? '')
   const color  = VIA_COLOR[label]  ?? '#6b7280'
   const bg     = VIA_BG[label]     ?? '#f9fafb'
@@ -186,6 +186,20 @@ function buildFirmHtml(s: Record<string, unknown>): string {
         ${esc(s.notes as string)}
       </div>`) : ''}
 
+    ${reportUrl ? `
+    <!-- View Report CTA -->
+    <div style="text-align:center;margin-top:28px">
+      <a href="${reportUrl}"
+         style="display:inline-block;background:#1a2e4a;color:white;text-decoration:none;
+                border-radius:9px;padding:12px 32px;font-size:14px;font-weight:800;
+                letter-spacing:-0.2px">
+        View Full Report &amp; Accept / Reject →
+      </a>
+      <div style="margin-top:10px;font-size:11px;color:#9ca3af">
+        This link lets you review the complete intake and send it directly to Fluent Case.
+      </div>
+    </div>` : ''}
+
   </td></tr>
 
   <!-- Footer -->
@@ -302,9 +316,10 @@ async function send(resendKey: string, from: string, to: string | string[], subj
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  const resendKey = Deno.env.get('RESEND_API_KEY')
-  const firmEmail = Deno.env.get('FIRM_EMAIL')
-  const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'CaseTake <onboarding@resend.dev>'
+  const resendKey   = Deno.env.get('RESEND_API_KEY')
+  const firmEmail   = Deno.env.get('FIRM_EMAIL')
+  const fromEmail   = Deno.env.get('FROM_EMAIL')   ?? 'CaseTake <onboarding@resend.dev>'
+  const caseBaseUrl = Deno.env.get('CASE_BASE_URL') ?? 'https://casetake.picnicpeaks.com'
 
   if (!resendKey || !firmEmail) {
     console.error('Missing RESEND_API_KEY or FIRM_EMAIL')
@@ -314,9 +329,11 @@ serve(async (req) => {
     )
   }
 
-  const payload = await req.json()
-  const record  = payload.record
-  const s       = (record?.summary ?? {}) as Record<string, unknown>
+  const payload  = await req.json()
+  const record   = payload.record
+  const s        = (record?.summary ?? {}) as Record<string, unknown>
+  const caseId   = record?.id as string | undefined
+  const reportUrl = caseId ? `${caseBaseUrl}?case=${caseId}` : null
 
   const results: Record<string, unknown> = {}
 
@@ -327,7 +344,7 @@ serve(async (req) => {
     fromEmail,
     firmRecipients,
     `New Intake: ${s.claimant} — ${s.viability_label} (${s.viability_score})`,
-    buildFirmHtml(s),
+    buildFirmHtml(s, reportUrl),
   )
 
   // ── Client email (if provided) ──
