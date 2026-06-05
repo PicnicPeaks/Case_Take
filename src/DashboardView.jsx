@@ -335,7 +335,7 @@ export default function DashboardView() {
         </div>
       </header>
 
-      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '28px 20px 60px' }}>
+      <div style={{ padding: '28px 24px 60px' }}>
 
         {/* ── Error ── */}
         {error && (
@@ -409,8 +409,9 @@ export default function DashboardView() {
 
         {/* ── Table ── */}
         <div style={{
-          background: 'white', borderRadius: 12, overflow: 'hidden',
+          background: 'white', borderRadius: 12,
           boxShadow: '0 1px 6px rgba(0,0,0,0.07)', border: '1px solid #e5e7eb',
+          overflowX: 'auto',
         }}>
           {loading ? (
             <div style={{ padding: '56px 0', textAlign: 'center', color: '#9ca3af' }}>
@@ -418,7 +419,7 @@ export default function DashboardView() {
               <div style={{ fontSize: 13 }}>Loading intakes…</div>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #f0f0f0', background: '#fafafa' }}>
                   <th style={{ width: 4, padding: 0 }} />
