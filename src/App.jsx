@@ -940,23 +940,37 @@ function LandingScreen({ onStart, language, firm = null }) {
       {/* Top nav */}
       <nav style={{
         background: BRAND, padding: '14px 24px',
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div style={{
-          width: 38, height: 38, borderRadius: 9,
-          background: 'rgba(255,255,255,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-        }}>
-          {firm?.logo_url
-            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
-            : '⚖️'}
-        </div>
-        <div>
-          <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
-            {firm?.name ?? 'CaseTake'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 9,
+            background: 'rgba(255,255,255,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+          }}>
+            {firm?.logo_url
+              ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
+              : '⚖️'}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
+          <div>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
+              {firm?.name ?? 'CaseTake'}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
+          </div>
         </div>
+        {firm && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(255,255,255,0.12)', borderRadius: 20,
+            padding: '4px 10px 4px 8px', border: '1px solid rgba(255,255,255,0.18)',
+          }}>
+            <span style={{ fontSize: 13 }}>⚖️</span>
+            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em' }}>
+              Powered by CaseTake
+            </span>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
@@ -1278,6 +1292,19 @@ export default function App({ firm = null }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {firm && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: 'rgba(255,255,255,0.10)', borderRadius: 20,
+              padding: '4px 10px 4px 8px', border: '1px solid rgba(255,255,255,0.18)',
+              marginRight: 4,
+            }}>
+              <span style={{ fontSize: 12 }}>⚖️</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                Powered by CaseTake
+              </span>
+            </div>
+          )}
           <button
             onClick={() => setLanguage(l => l === 'en' ? 'es' : 'en')}
             style={{
