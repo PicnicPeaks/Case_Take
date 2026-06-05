@@ -1032,9 +1032,7 @@ export default function App({ firm = null }) {
   const BRAND    = firm?.primary_color ?? NAVY
   const BRAND_MID  = firm?.primary_color ?? NAVY_MID
 
-  // Routing is handled by Router.jsx — App only renders the intake UI
-
-  const showAbout = _params.has('about')
+  const showAbout = new URLSearchParams(window.location.search).has('about')
 
   const [screen,      setScreen]      = useState(showAbout ? 'landing' : 'chat')
   const [messages,    setMessages]    = useState([])   // { role, displayContent }
