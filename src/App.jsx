@@ -962,11 +962,11 @@ function LandingScreen({ onStart, language, firm = null }) {
         {firm && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(255,255,255,0.12)', borderRadius: 20,
-            padding: '4px 10px 4px 8px', border: '1px solid rgba(255,255,255,0.18)',
+            background: 'white', borderRadius: 20,
+            padding: '4px 10px 4px 8px', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
           }}>
             <span style={{ fontSize: 13 }}>⚖️</span>
-            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em' }}>
+            <span style={{ color: '#1a2e4a', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.02em' }}>
               Powered by CaseTake
             </span>
           </div>
@@ -1295,12 +1295,12 @@ export default function App({ firm = null }) {
           {firm && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              background: 'rgba(255,255,255,0.10)', borderRadius: 20,
-              padding: '4px 10px 4px 8px', border: '1px solid rgba(255,255,255,0.18)',
+              background: 'white', borderRadius: 20,
+              padding: '4px 10px 4px 8px', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               marginRight: 4,
             }}>
               <span style={{ fontSize: 12 }}>⚖️</span>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#1a2e4a', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                 Powered by CaseTake
               </span>
             </div>
