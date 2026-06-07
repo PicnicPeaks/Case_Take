@@ -54,10 +54,6 @@ export default function Router() {
   const view     = params.get('view')   // 'dashboard' | 'settings' | null
   const caseId   = params.get('case')
 
-  // Accept both ?view=dashboard and ?dashboard for firm routes
-  const wantsDashboard = view === 'dashboard' || params.has('dashboard')
-  const wantsSettings  = view === 'settings'  || params.has('settings')
-
   const [firm,        setFirm]        = useState(null)
   const [firmLoading, setFirmLoading] = useState(!!firmSlug)
   const [firmMissing, setFirmMissing] = useState(false)
@@ -75,9 +71,9 @@ export default function Router() {
 
   // ── Non-firm routes ──────────────────────────────────────────────────────────
   if (!firmSlug) {
-    if (params.has('admin'))  return <AdminView />
-    if (caseId)               return <CaseSummaryView caseId={caseId} />
-    if (wantsDashboard)       return <DashboardView />
+    if (params.has('admin'))     return <AdminView />
+    if (caseId)                  return <CaseSummaryView caseId={caseId} />
+    if (params.has('dashboard')) return <DashboardView />
     return <App />
   }
 
@@ -85,10 +81,9 @@ export default function Router() {
   if (firmLoading) return <LoadingScreen />
   if (firmMissing) return <FirmNotFound slug={firmSlug} />
 
-  // Pass firmSlug directly so DashboardView can scope data without waiting for firm object
-  if (wantsSettings)  return <FirmSettings firmSlug={firmSlug} />
-  if (wantsDashboard) return <DashboardView firm={firm} firmSlug={firmSlug} />
-  if (caseId)         return <CaseSummaryView caseId={caseId} firmSlug={firmSlug} />
+  if (view === 'settings')  return <FirmSettings firmSlug={firmSlug} />
+  if (view === 'dashboard') return <DashboardView firm={firm} firmSlug={firmSlug} />
+  if (caseId)               return <CaseSummaryView caseId={caseId} firmSlug={firmSlug} />
 
   // Default: firm-branded intake
   return <App firm={firm} />
