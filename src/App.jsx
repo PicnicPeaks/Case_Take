@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { saveCase, saveFeedback } from './supabase.js'
 import { t, getQuestions } from './translations.js'
+import { onBrand } from './colorUtils.js'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -932,8 +933,9 @@ function ScriptedQuestionBubble({ question, language }) {
 // ─── LandingScreen ────────────────────────────────────────────────────────────
 
 function LandingScreen({ onStart, language, firm = null }) {
-  const L    = t[language].landing
+  const L     = t[language].landing
   const BRAND = firm?.primary_color ?? NAVY
+  const ON    = onBrand(BRAND)
 
   return (
     <div style={{ minHeight: '100svh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
@@ -945,7 +947,7 @@ function LandingScreen({ onStart, language, firm = null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 38, height: 38, borderRadius: 9,
-            background: 'rgba(255,255,255,0.12)',
+            background: ON.btnBg,
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
           }}>
             {firm?.logo_url
@@ -953,10 +955,10 @@ function LandingScreen({ onStart, language, firm = null }) {
               : '⚖️'}
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
+            <div style={{ color: ON.text, fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
               {firm?.name ?? 'CaseTake'}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
+            <div style={{ color: ON.textMuted, fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
           </div>
         </div>
         {firm && (
@@ -1043,8 +1045,9 @@ function LandingScreen({ onStart, language, firm = null }) {
 
 export default function App({ firm = null }) {
   // Firm-aware brand values
-  const BRAND    = firm?.primary_color ?? NAVY
-  const BRAND_MID  = firm?.primary_color ?? NAVY_MID
+  const BRAND     = firm?.primary_color ?? NAVY
+  const BRAND_MID = firm?.primary_color ?? NAVY_MID
+  const ON        = onBrand(BRAND)
 
   const showAbout = new URLSearchParams(window.location.search).has('about')
 
@@ -1282,10 +1285,10 @@ export default function App({ firm = null }) {
             : <span style={{ fontSize: 20 }}>⚖️</span>
           }
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>
+            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>
               {firm?.name ?? 'CaseTake'}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 10.5, marginTop: 2 }}>
+            <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 2 }}>
               {firm?.tagline ?? 'California • Case Screening'}
             </div>
           </div>
@@ -1308,8 +1311,8 @@ export default function App({ firm = null }) {
           <button
             onClick={() => setLanguage(l => l === 'en' ? 'es' : 'en')}
             style={{
-              background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)',
-              border: '1.5px solid rgba(255,255,255,0.2)',
+              background: ON.btnBg, color: ON.btnText,
+              border: `1.5px solid ${ON.btnBorder}`,
               borderRadius: 7, padding: '6px 13px', fontSize: 13, fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -1317,8 +1320,8 @@ export default function App({ firm = null }) {
           <button
             onClick={resetCase}
             style={{
-              background: 'transparent', color: 'rgba(255,255,255,0.72)',
-              border: '1.5px solid rgba(255,255,255,0.2)',
+              background: 'transparent', color: ON.btnText,
+              border: `1.5px solid ${ON.btnBorder}`,
               borderRadius: 7, padding: '6px 13px', fontSize: 13, fontWeight: 500,
               cursor: 'pointer',
             }}

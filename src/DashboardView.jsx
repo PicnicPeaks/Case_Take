@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getIntakes } from './supabase.js'
+import { onBrand } from './colorUtils.js'
 
 const NAVY       = '#1a2e4a'
 const NAVY_MID   = '#243d5e'
@@ -199,6 +200,7 @@ const SORT_OPTIONS = [
 
 export default function DashboardView({ firm = null, firmSlug: firmSlugProp = null }) {
   const BRAND = firm?.primary_color ?? NAVY
+  const ON    = onBrand(BRAND)
 
   // firmSlugProp is passed directly by Router (available immediately, before firm object loads)
   const activeSlug = firmSlugProp ?? firm?.slug ?? null
@@ -307,35 +309,35 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
               ? <img src={firm.logo_url} alt={firm.name} style={{ height: 32, objectFit: 'contain' }} />
               : <div style={{
                   width: 36, height: 36, borderRadius: 9,
-                  background: 'rgba(255,255,255,0.12)',
+                  background: ON.btnBg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                 }}>⚖️</div>
             }
             <div>
-              <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
+              <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
                 {firm?.name ?? 'CaseTake'}
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10.5 }}>
+              <div style={{ color: ON.textMuted, fontSize: 10.5 }}>
                 {firm?.tagline ?? "California • Workers' Comp"}
               </div>
             </div>
           </a>
-          <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.15)', margin: '0 6px' }} />
-          <div style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: 14 }}>
+          <div style={{ width: 1, height: 28, background: ON.btnBorder, margin: '0 6px' }} />
+          <div style={{ color: ON.text, fontWeight: 700, fontSize: 14, opacity: 0.9 }}>
             Intake Dashboard
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+          <span style={{ fontSize: 11, color: ON.textMuted }}>
             Updated {timeAgo(new Date(lastRefresh).toISOString())}
           </span>
           <button
             onClick={load}
             disabled={loading}
             style={{
-              background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)',
-              border: '1.5px solid rgba(255,255,255,0.2)', borderRadius: 7,
+              background: ON.btnBg, color: ON.btnText,
+              border: `1.5px solid ${ON.btnBorder}`, borderRadius: 7,
               padding: '6px 14px', fontSize: 12.5, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
             }}
@@ -343,7 +345,7 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
           <a
             href={firm ? `/?firm=${firm.slug}` : '/'}
             style={{
-              background: 'white', color: BRAND,
+              background: ON.btnPrimary, color: ON.btnPrimaryText,
               border: 'none', borderRadius: 7,
               padding: '6px 16px', fontSize: 12.5, fontWeight: 700,
               cursor: 'pointer', textDecoration: 'none',
@@ -356,11 +358,11 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
                 window.location.reload()
               }}
               style={{
-                background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)',
-                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 7,
+                background: ON.btnBg, color: ON.btnText,
+                border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
                 padding: '6px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}
-            >Lock</button>
+            >Sign out</button>
           )}
         </div>
       </header>

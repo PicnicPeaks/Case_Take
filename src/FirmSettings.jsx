@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getFirm, updateFirm } from './supabase.js'
+import { onBrand } from './colorUtils.js'
 
 const NAVY = '#1a2e4a'
 
@@ -42,6 +43,7 @@ export default function FirmSettings({ firmSlug }) {
   }, [firmSlug])
 
   const BRAND = firm?.primary_color ?? NAVY
+  const ON    = onBrand(BRAND)
 
   const unlock = async () => {
     setTokenErr('')
@@ -140,18 +142,19 @@ export default function FirmSettings({ firmSlug }) {
             ? <img src={firm.logo_url} alt={firm.name} style={{ height: 32, objectFit: 'contain' }} />
             : <span style={{ fontSize: 20 }}>⚖️</span>}
           <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{firm.name}</div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10.5 }}>Firm Settings</div>
+            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{firm.name}</div>
+            <div style={{ color: ON.textMuted, fontSize: 10.5 }}>Firm Settings</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <a href={`/?firm=${firmSlug}&view=dashboard`} style={{
-            background: 'rgba(255,255,255,0.15)', color: 'white',
+            background: ON.btnBg, color: ON.btnText,
+            border: `1px solid ${ON.btnBorder}`,
             borderRadius: 7, padding: '6px 14px', fontSize: 12.5,
             fontWeight: 600, textDecoration: 'none',
           }}>Dashboard</a>
           <a href={`/?firm=${firmSlug}`} style={{
-            background: 'white', color: BRAND,
+            background: ON.btnPrimary, color: ON.btnPrimaryText,
             borderRadius: 7, padding: '6px 14px', fontSize: 12.5,
             fontWeight: 700, textDecoration: 'none',
           }}>Intake Form</a>
@@ -162,11 +165,11 @@ export default function FirmSettings({ firmSlug }) {
                 window.location.reload()
               }}
               style={{
-                background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)',
-                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 7,
+                background: ON.btnBg, color: ON.btnText,
+                border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
                 padding: '6px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}
-            >Lock</button>
+            >Sign out</button>
           )}
         </div>
       </header>

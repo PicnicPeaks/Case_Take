@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { verifyFirmPassword } from './supabase.js'
+import { onBrand } from './colorUtils.js'
 
 const NAVY = '#1a2e4a'
 
@@ -10,6 +11,7 @@ function storageKey(slug) {
 export default function FirmAuthGate({ firm, firmSlug, children }) {
   const slug  = firmSlug ?? firm?.slug
   const BRAND = firm?.primary_color ?? NAVY
+  const ON    = onBrand(BRAND)
 
   // Already authenticated this session?
   const [authed,   setAuthed]   = useState(() => !!sessionStorage.getItem(storageKey(slug)))
@@ -54,7 +56,7 @@ export default function FirmAuthGate({ firm, firmSlug, children }) {
           ? <img src={firm.logo_url} alt={firm.name} style={{ height: 28, objectFit: 'contain' }} />
           : <span style={{ fontSize: 18 }}>⚖️</span>
         }
-        <span style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>{firm?.name ?? 'CaseTake'}</span>
+        <span style={{ color: ON.text, fontWeight: 800, fontSize: 14 }}>{firm?.name ?? 'CaseTake'}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, background: 'white', borderRadius: 20, padding: '3px 9px 3px 7px' }}>
           <span style={{ fontSize: 11 }}>⚖️</span>
           <span style={{ color: NAVY, fontSize: 10, fontWeight: 700 }}>Powered by CaseTake</span>
