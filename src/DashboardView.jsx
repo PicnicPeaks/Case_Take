@@ -197,8 +197,11 @@ const SORT_OPTIONS = [
   { value: 'score_lo',  label: 'Score: low → high' },
 ]
 
-export default function DashboardView({ firm = null }) {
+export default function DashboardView({ firm = null, firmSlug: firmSlugProp = null }) {
   const BRAND = firm?.primary_color ?? NAVY
+
+  // firmSlugProp is passed directly by Router (available immediately, before firm object loads)
+  const activeSlug = firmSlugProp ?? firm?.slug ?? null
 
   const [intakes,  setIntakes]  = useState([])
   const [loading,  setLoading]  = useState(true)
@@ -210,7 +213,7 @@ export default function DashboardView({ firm = null }) {
 
   const load = () => {
     setLoading(true)
-    getIntakes(firm?.slug ?? null)
+    getIntakes(activeSlug)
       .then(data => {
         if (Array.isArray(data)) setIntakes(data)
         else setError(data.error ?? 'Failed to load intakes')
@@ -460,7 +463,7 @@ export default function DashboardView({ firm = null }) {
                 {rows.length === 0
                   ? <EmptyState filtered={tab !== 'all' || search.trim() !== ''} />
                   : rows.map((intake, i) => (
-                    <IntakeRow key={intake.id} intake={intake} isEven={i % 2 === 0} firmSlug={firm?.slug ?? null} />
+                    <IntakeRow key={intake.id} intake={intake} isEven={i % 2 === 0} firmSlug={activeSlug} />
                   ))
                 }
               </tbody>
