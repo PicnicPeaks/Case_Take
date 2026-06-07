@@ -110,6 +110,7 @@ serve(async (req) => {
     const ALLOWED = new Set([
       'name', 'tagline', 'logo_url', 'primary_color',
       'intake_emails', 'from_email', 'from_name', 'fluent_case_api_key',
+      'dashboard_password',
     ])
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
     for (const [k, v] of Object.entries(fields)) {

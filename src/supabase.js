@@ -84,6 +84,11 @@ export async function getIntakes(firmSlug = null) {
   return callFunction('get-intakes', 'GET', null, qs)
 }
 
+/** Verify a firm's dashboard password. Returns { success } or { error }. */
+export async function verifyFirmPassword(slug, password) {
+  return callFunction('verify-firm-password', 'POST', { slug, password })
+}
+
 /** Fetch public firm config by slug. */
 export async function getFirm(slug) {
   return callFunction('get-firm', 'GET', null, `?slug=${encodeURIComponent(slug)}`)

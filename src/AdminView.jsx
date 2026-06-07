@@ -95,22 +95,26 @@ export default function AdminView() {
     setEditingSlug(firm.slug)
     setSaveErr('')
     setEditForm({
-      name:          firm.name          ?? '',
-      tagline:       firm.tagline       ?? '',
-      logo_url:      firm.logo_url      ?? '',
-      primary_color: firm.primary_color ?? '#1a2e4a',
-      intake_emails: (firm.intake_emails ?? []).join(', '),
-      from_email:    firm.from_email    ?? '',
-      from_name:     firm.from_name     ?? '',
+      name:               firm.name               ?? '',
+      tagline:            firm.tagline             ?? '',
+      logo_url:           firm.logo_url            ?? '',
+      primary_color:      firm.primary_color       ?? '#1a2e4a',
+      intake_emails:      (firm.intake_emails ?? []).join(', '),
+      from_email:         firm.from_email          ?? '',
+      from_name:          firm.from_name           ?? '',
+      dashboard_password: '',   // blank = don't change; value = set new password
     })
   }
 
   const handleSaveEdit = async () => {
     setSaving(true)
     setSaveErr('')
+    const { dashboard_password, ...rest } = editForm
     const fields = {
-      ...editForm,
+      ...rest,
       intake_emails: editForm.intake_emails.split(',').map(e => e.trim()).filter(Boolean),
+      // Only send dashboard_password if the admin typed something
+      ...(dashboard_password.trim() ? { dashboard_password: dashboard_password.trim() } : {}),
     }
     const res = await adminUpdateFirm(token, editingSlug, fields)
     setSaving(false)
@@ -380,19 +384,31 @@ export default function AdminView() {
                               </div>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                                 {[
-                                  ['name',          'Firm Name *',          'Smith & Associates'],
-                                  ['tagline',        'Tagline',              "California Workers' Comp"],
-                                  ['logo_url',       'Logo URL',             'https://...'],
-                                  ['primary_color',  'Brand Color',          '#1a2e4a'],
-                                  ['intake_emails',  'Notification Emails',  'a@firm.com, b@firm.com'],
-                                  ['from_email',     'From Email',           'intakes@firm.com'],
-                                  ['from_name',      'From Name',            'Smith & Associates'],
+                                  ['name',               'Firm Name *',          'Smith & Associates'],
+                                  ['tagline',            'Tagline',              "California Workers' Comp"],
+                                  ['logo_url',           'Logo URL',             'https://...'],
+                                  ['primary_color',      'Brand Color',          '#1a2e4a'],
+                                  ['intake_emails',      'Notification Emails',  'a@firm.com, b@firm.com'],
+                                  ['from_email',         'From Email',           'intakes@firm.com'],
+                                  ['from_name',          'From Name',            'Smith & Associates'],
+                                  ['dashboard_password', 'Dashboard Password',   'Leave blank to keep existing'],
                                 ].map(([key, label, ph]) => (
                                   <div key={key}>
                                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                                       {label}
                                     </label>
-                                    {key === 'primary_color' ? (
+                                    {key === 'dashboard_password' ? (
+                                      <input
+                                        type="password"
+                                        value={editForm[key] ?? ''}
+                                        onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                        placeholder={ph}
+                                        autoComplete="new-password"
+                                        style={{ ...inputStyle, fontSize: 13 }}
+                                        onFocus={e => (e.target.style.borderColor = NAVY)}
+                                        onBlur={e  => (e.target.style.borderColor = '#e5e7eb')}
+                                      />
+                                    ) : key === 'primary_color' ? (
                                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <input type="color" value={editForm[key]}
                                           onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}

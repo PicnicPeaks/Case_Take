@@ -2,18 +2,19 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
-  const url  = new URL(req.url)
-  const slug = url.searchParams.get('slug')
+  const body = await req.json().catch(() => ({}))
+  const { slug, password } = body as { slug?: string; password?: string }
 
-  if (!slug) {
-    return new Response(JSON.stringify({ error: 'Missing slug' }), {
+  if (!slug || !password) {
+    return new Response(JSON.stringify({ error: 'Missing slug or password' }), {
       status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
@@ -25,8 +26,7 @@ serve(async (req) => {
 
   const { data, error } = await supabase
     .from('firms')
-    // Never return settings_token, fluent_case_api_key, or dashboard_password to the client
-    .select('id, slug, name, tagline, logo_url, primary_color, intake_emails, from_email, from_name, created_at, dashboard_password')
+    .select('dashboard_password')
     .eq('slug', slug)
     .single()
 
@@ -36,11 +36,20 @@ serve(async (req) => {
     })
   }
 
-  // Expose only whether a password exists — never the value itself
-  const { dashboard_password, ...publicData } = data
-  const payload = { ...publicData, has_dashboard_password: !!dashboard_password }
+  if (!data.dashboard_password) {
+    // No password set — open access
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
 
-  return new Response(JSON.stringify(payload), {
+  if (data.dashboard_password !== password) {
+    return new Response(JSON.stringify({ error: 'Invalid password' }), {
+      status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 })

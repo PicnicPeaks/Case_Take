@@ -4,6 +4,7 @@ import DashboardView from './DashboardView.jsx'
 import CaseSummaryView from './CaseSummaryView.jsx'
 import FirmSettings from './FirmSettings.jsx'
 import AdminView from './AdminView.jsx'
+import FirmAuthGate from './FirmAuthGate.jsx'
 import { getFirm } from './supabase.js'
 
 const NAVY = '#1a2e4a'
@@ -80,8 +81,8 @@ export default function Router() {
   if (firmLoading) return <LoadingScreen />
   if (firmMissing) return <FirmNotFound slug={firmSlug} />
 
-  if (view === 'settings')  return <FirmSettings firmSlug={firmSlug} />
-  if (view === 'dashboard') return <DashboardView firm={firm} firmSlug={firmSlug} />
+  if (view === 'settings')  return <FirmAuthGate firm={firm} firmSlug={firmSlug}><FirmSettings firmSlug={firmSlug} /></FirmAuthGate>
+  if (view === 'dashboard') return <FirmAuthGate firm={firm} firmSlug={firmSlug}><DashboardView firm={firm} firmSlug={firmSlug} /></FirmAuthGate>
   if (caseId)               return <CaseSummaryView caseId={caseId} firmSlug={firmSlug} />
 
   // Default: firm-branded intake
