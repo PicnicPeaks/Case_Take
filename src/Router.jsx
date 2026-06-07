@@ -71,9 +71,8 @@ export default function Router() {
 
   // ── Non-firm routes ──────────────────────────────────────────────────────────
   if (!firmSlug) {
-    if (params.has('admin'))     return <AdminView />
-    if (caseId)                  return <CaseSummaryView caseId={caseId} />
-    if (params.has('dashboard')) return <DashboardView />
+    if (params.has('admin')) return <AdminView />
+    if (caseId)              return <CaseSummaryView caseId={caseId} />
     return <App />
   }
 
