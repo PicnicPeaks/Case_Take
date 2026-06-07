@@ -161,7 +161,7 @@ export default function FirmSettings({ firmSlug }) {
           {firm?.has_dashboard_password && (
             <button
               onClick={() => {
-                sessionStorage.removeItem(`ct_firm_auth_${firmSlug}`)
+                localStorage.removeItem(`ct_firm_auth_${firmSlug}`)
                 window.location.reload()
               }}
               style={{

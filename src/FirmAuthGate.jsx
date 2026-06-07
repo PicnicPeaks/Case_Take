@@ -14,7 +14,7 @@ export default function FirmAuthGate({ firm, firmSlug, children }) {
   const ON    = onBrand(BRAND)
 
   // Already authenticated this session?
-  const [authed,   setAuthed]   = useState(() => !!sessionStorage.getItem(storageKey(slug)))
+  const [authed,   setAuthed]   = useState(() => !!localStorage.getItem(storageKey(slug)))
   const [password, setPassword] = useState('')
   const [busy,     setBusy]     = useState(false)
   const [error,    setError]    = useState('')
@@ -32,7 +32,7 @@ export default function FirmAuthGate({ firm, firmSlug, children }) {
     const res = await verifyFirmPassword(slug, password.trim())
     setBusy(false)
     if (res.success) {
-      sessionStorage.setItem(storageKey(slug), '1')
+      localStorage.setItem(storageKey(slug), '1')
       setAuthed(true)
     } else {
       setError('Incorrect password.')

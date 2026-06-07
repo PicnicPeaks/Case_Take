@@ -354,7 +354,7 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
           {firm?.has_dashboard_password && activeSlug && (
             <button
               onClick={() => {
-                sessionStorage.removeItem(`ct_firm_auth_${activeSlug}`)
+                localStorage.removeItem(`ct_firm_auth_${activeSlug}`)
                 window.location.reload()
               }}
               style={{
