@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { saveCase, saveFeedback } from './supabase.js'
 import { t, getQuestions } from './translations.js'
 import { onBrand } from './colorUtils.js'
+import CaseSummaryView from './CaseSummaryView.jsx'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const NAVY       = '#1a2e4a'
@@ -1044,7 +1045,7 @@ function LandingScreen({ onStart, language, firm = null }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-export default function App({ firm = null }) {
+export default function App({ firm = null, demo = false }) {
   // Firm-aware brand values
   const BRAND     = firm?.primary_color ?? NAVY
   const BRAND_MID = firm?.primary_color ?? NAVY_MID
@@ -1058,6 +1059,7 @@ export default function App({ firm = null }) {
   const [isLoading,   setIsLoading]   = useState(false)
   const [showBanner,  setShowBanner]  = useState(false)
   const [caseId,      setCaseId]      = useState(null)   // UUID returned after save — for View Report link
+  const [showReport,  setShowReport]  = useState(false)  // demo: reveal inline report
   const [error,       setError]       = useState(null)
 
   const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
@@ -1169,6 +1171,7 @@ export default function App({ firm = null }) {
         const { id } = await saveCase(summary, fullHistory, firm?.slug ?? null)
         setCaseId(id)
         setShowBanner(true)
+        if (demo && id) setTimeout(() => setShowReport(true), 1200)
       } else if (hasNextQ) {
         // AI is satisfied with the current topic — advance to next scripted question
         const nextIdx = scriptedIdxRef.current + 1
@@ -1199,6 +1202,7 @@ export default function App({ firm = null }) {
             const { id } = await saveCase(finalSummary, summaryHistory, firm?.slug ?? null)
             setCaseId(id)
             setShowBanner(true)
+            if (demo && id) setTimeout(() => setShowReport(true), 1200)
           }
         }
       }
@@ -1271,7 +1275,8 @@ export default function App({ firm = null }) {
 
   // ── Chat screen ────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100svh', background: '#f8fafc', overflow: 'hidden' }}>
+    <>
+    <div style={{ display: 'flex', flexDirection: 'column', height: showReport ? 'auto' : '100svh', minHeight: '100svh', background: '#f8fafc', overflow: showReport ? 'visible' : 'hidden' }}>
 
       {/* Header */}
       <header style={{
@@ -1333,6 +1338,20 @@ export default function App({ firm = null }) {
           </button>
         </div>
       </header>
+
+      {/* Demo banner */}
+      {demo && (
+        <div style={{
+          background: '#f59e0b', color: '#111',
+          padding: '7px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12.5, fontWeight: 700, flexShrink: 0, gap: 10, letterSpacing: '0.01em',
+        }}>
+          <span>🎬 DEMO MODE</span>
+          <span style={{ fontWeight: 400, opacity: 0.7 }}>—</span>
+          <span style={{ fontWeight: 500 }}>Complete the intake to see the attorney report</span>
+          <a href="/" style={{ marginLeft: 8, color: '#111', opacity: 0.55, fontSize: 11.5, fontWeight: 600 }}>← Back to home</a>
+        </div>
+      )}
 
       {/* Completion banner */}
       {showBanner && (
@@ -1484,5 +1503,46 @@ export default function App({ firm = null }) {
       })()}
 
     </div>
+
+    {/* ── Demo: inline report reveal ── */}
+    {demo && showReport && caseId && (
+      <div style={{ animation: 'demoSlideIn 0.6s cubic-bezier(0.16,1,0.3,1) both' }}>
+        <style>{`@keyframes demoSlideIn { from { opacity:0; transform:translateY(32px) } to { opacity:1; transform:translateY(0) } }`}</style>
+
+        {/* Demo CTA banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #1a2e4a 0%, #243d5e 100%)',
+          padding: '36px clamp(20px,5vw,60px)',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+            🎉 You just completed a full CaseTake intake
+          </div>
+          <div style={{ fontWeight: 900, fontSize: 'clamp(22px,4vw,32px)', color: 'white', letterSpacing: '-0.5px', marginBottom: 12 }}>
+            This is the exact report your attorney team receives
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, lineHeight: 1.65, maxWidth: 560, margin: '0 auto 28px' }}>
+            Viability score, red flags, full case summary — delivered in under 10 minutes,
+            with one-click accept to Fluent Case. No phone calls. No wasted consults.
+          </div>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="mailto:hello@picnicpeaks.com" style={{
+              background: '#f59e0b', color: '#111', fontWeight: 800, fontSize: 15,
+              textDecoration: 'none', padding: '14px 32px', borderRadius: 10,
+              boxShadow: '0 4px 20px rgba(245,158,11,0.5)',
+            }}>Get CaseTake for my firm →</a>
+            <a href="/" style={{
+              background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 600, fontSize: 14,
+              textDecoration: 'none', padding: '14px 24px', borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}>← Back to home</a>
+          </div>
+        </div>
+
+        {/* The actual report */}
+        <CaseSummaryView caseId={caseId} demo={true} />
+      </div>
+    )}
+    </>
   )
 }

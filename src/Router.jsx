@@ -5,6 +5,7 @@ import CaseSummaryView from './CaseSummaryView.jsx'
 import FirmSettings from './FirmSettings.jsx'
 import AdminView from './AdminView.jsx'
 import FirmAuthGate from './FirmAuthGate.jsx'
+import MarketingPage from './MarketingPage.jsx'
 import { getFirm } from './supabase.js'
 
 const NAVY = '#1a2e4a'
@@ -74,6 +75,8 @@ export default function Router() {
   if (!firmSlug) {
     if (params.has('admin')) return <AdminView />
     if (caseId)              return <CaseSummaryView caseId={caseId} />
+    if (params.has('demo'))  return <App demo={true} />
+    if (!params.toString())  return <MarketingPage />
     return <App />
   }
 
