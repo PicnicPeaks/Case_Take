@@ -1091,13 +1091,13 @@ export default function App({ firm = null, demo = false }) {
   const feedbackMap = Object.fromEntries(feedback.map(f => [f.msgId, f]))
 
   const addFeedback = useCallback((msgId, fb) => {
-    saveFeedback(fb)
+    saveFeedback({ ...fb, firmSlug: firm?.slug ?? null })
     setFeedback(prev => {
       const updated = [...prev.filter(f => f.msgId !== msgId), { msgId, ...fb, timestamp: new Date().toISOString() }]
       localStorage.setItem('ct_feedback', JSON.stringify(updated))
       return updated
     })
-  }, [])
+  }, [firm?.slug])
 
   // ── Core API call ──────────────────────────────────────────────────────────
   const callAPI = useCallback(async (history, preForm = preFormRef.current) => {

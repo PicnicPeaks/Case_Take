@@ -48,11 +48,12 @@ export async function saveCase(summary, chatLog, firmSlug = null) {
 
 // ── Feedback ───────────────────────────────────────────────────────────────────
 
-export async function saveFeedback({ rating, comment, snippet }) {
+export async function saveFeedback({ rating, comment, snippet, firmSlug = null }) {
   const { error } = await supabase.from('feedback').insert({
     rating,
     comment,
     message_text: snippet,
+    ...(firmSlug ? { firm_slug: firmSlug } : {}),
   })
   if (error) console.error('Supabase feedback error:', error.message)
   return !error
