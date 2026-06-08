@@ -4,6 +4,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 // Fields the firm is allowed to update via the settings page
@@ -16,14 +17,15 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   const body = await req.json().catch(() => ({}))
-  const { slug, settings_token, ...updates } = body as {
+  const { slug, settings_token, dashboard_password, ...updates } = body as {
     slug?: string
     settings_token?: string
+    dashboard_password?: string
     [key: string]: unknown
   }
 
-  if (!slug || !settings_token) {
-    return new Response(JSON.stringify({ error: 'Missing slug or settings_token' }), {
+  if (!slug || (!settings_token && !dashboard_password)) {
+    return new Response(JSON.stringify({ error: 'Missing slug or auth credential' }), {
       status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
@@ -33,10 +35,10 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  // Verify token — fetch firm and compare
+  // Fetch firm — need settings_token and dashboard_password to verify
   const { data: firm, error: fetchErr } = await supabase
     .from('firms')
-    .select('id, settings_token')
+    .select('id, settings_token, dashboard_password')
     .eq('slug', slug)
     .single()
 
@@ -46,7 +48,11 @@ serve(async (req) => {
     })
   }
 
-  if (firm.settings_token !== settings_token) {
+  // Verify auth — accept either settings_token OR dashboard_password
+  const tokenOk    = settings_token    && firm.settings_token    === settings_token
+  const passwordOk = dashboard_password && firm.dashboard_password === dashboard_password
+
+  if (!tokenOk && !passwordOk) {
     return new Response(JSON.stringify({ error: 'Invalid settings token' }), {
       status: 403, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
@@ -59,8 +65,8 @@ serve(async (req) => {
   }
 
   if (Object.keys(safeUpdates).length === 1) {
-    return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-      status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
 

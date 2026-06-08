@@ -5,25 +5,22 @@ import { onBrand } from './colorUtils.js'
 const NAVY = '#1a2e4a'
 
 export default function FirmSettings({ firmSlug }) {
-  const [token,   setToken]   = useState(() => sessionStorage.getItem(`ct_token_${firmSlug}`) ?? '')
   const [firm,    setFirm]    = useState(null)
   const [loading, setLoading] = useState(true)
-  const [locked,  setLocked]  = useState(true)
 
   // form state
   const [name,          setName]          = useState('')
   const [tagline,       setTagline]       = useState('')
   const [logoUrl,       setLogoUrl]       = useState('')
   const [primaryColor,  setPrimaryColor]  = useState('#1a2e4a')
-  const [intakeEmails,  setIntakeEmails]  = useState('')   // comma-separated in the input
+  const [intakeEmails,  setIntakeEmails]  = useState('')
   const [fromEmail,     setFromEmail]     = useState('')
   const [fromName,      setFromName]      = useState('')
   const [fluentKey,     setFluentKey]     = useState('')
   const [showFluentKey, setShowFluentKey] = useState(false)
 
-  const [saving,   setSaving]   = useState(false)
-  const [saveMsg,  setSaveMsg]  = useState(null)   // { type: 'success' | 'error', text }
-  const [tokenErr, setTokenErr] = useState('')
+  const [saving,  setSaving]  = useState(false)
+  const [saveMsg, setSaveMsg] = useState(null)
 
   useEffect(() => {
     getFirm(firmSlug)
@@ -45,19 +42,6 @@ export default function FirmSettings({ firmSlug }) {
   const BRAND = firm?.primary_color ?? NAVY
   const ON    = onBrand(BRAND)
 
-  const unlock = async () => {
-    setTokenErr('')
-    if (!token.trim()) { setTokenErr('Enter your settings token to continue.'); return }
-    // Verify by attempting a no-op update — if token is wrong we get 403
-    const res = await updateFirm(firmSlug, token.trim(), { name: firm?.name ?? name })
-    if (res.error === 'Invalid settings token') {
-      setTokenErr('Invalid token — check with your CaseTake account manager.')
-    } else {
-      sessionStorage.setItem(`ct_token_${firmSlug}`, token.trim())
-      setLocked(false)
-    }
-  }
-
   const save = async () => {
     setSaving(true)
     setSaveMsg(null)
@@ -71,7 +55,7 @@ export default function FirmSettings({ firmSlug }) {
       from_name:     fromName     || null,
       ...(fluentKey.trim() ? { fluent_case_api_key: fluentKey.trim() } : {}),
     }
-    const res = await updateFirm(firmSlug, token.trim(), fields)
+    const res = await updateFirm(firmSlug, fields)
     setSaving(false)
     if (res.success) {
       setSaveMsg({ type: 'success', text: 'Settings saved.' })
@@ -118,11 +102,6 @@ export default function FirmSettings({ firmSlug }) {
     width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb',
     borderRadius: 8, padding: '9px 13px', fontSize: 14, fontFamily: 'inherit',
     outline: 'none', color: '#111827', background: 'white',
-  }
-
-  const labelStyle = {
-    display: 'block', fontSize: 12, fontWeight: 700, color: '#6b7280',
-    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
   }
 
   return (
@@ -179,50 +158,9 @@ export default function FirmSettings({ firmSlug }) {
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 20px 60px' }}>
 
-        {/* Token gate */}
-        {locked && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: '28px 28px',
-            boxShadow: '0 1px 8px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb',
-            marginBottom: 24, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 36, marginBottom: 14 }}>🔐</div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#111827', marginBottom: 6 }}>
-              Enter your settings token
-            </div>
-            <div style={{ fontSize: 13.5, color: '#6b7280', marginBottom: 20, lineHeight: 1.6 }}>
-              Your settings token was provided when your firm was set up.<br />
-              Contact your CaseTake account manager if you need it.
-            </div>
-            <div style={{ maxWidth: 320, margin: '0 auto' }}>
-              <input
-                type="password"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && unlock()}
-                style={{ ...inputStyle, textAlign: 'center', letterSpacing: '0.04em', marginBottom: 12 }}
-                onFocus={e => (e.target.style.borderColor = BRAND)}
-                onBlur={e  => (e.target.style.borderColor = '#e5e7eb')}
-              />
-              {tokenErr && (
-                <div style={{ color: '#dc2626', fontSize: 12.5, marginBottom: 12 }}>{tokenErr}</div>
-              )}
-              <button
-                onClick={unlock}
-                style={{
-                  width: '100%', background: BRAND, color: 'white', border: 'none',
-                  borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                }}
-              >Unlock Settings</button>
-            </div>
-          </div>
-        )}
-
         {/* Settings form */}
-        {!locked && (
-          <>
-            {saveMsg && (
+        <>
+          {saveMsg && (
               <div style={{
                 background: saveMsg.type === 'success' ? '#f0fdf4' : '#fef2f2',
                 border: `1px solid ${saveMsg.type === 'success' ? '#86efac' : '#fca5a5'}`,
@@ -336,7 +274,6 @@ export default function FirmSettings({ firmSlug }) {
               >{saving ? 'Saving…' : 'Save Settings'}</button>
             </div>
           </>
-        )}
 
         {/* Firm URL info */}
         <div style={{

@@ -32,7 +32,7 @@ export default function FirmAuthGate({ firm, firmSlug, children }) {
     const res = await verifyFirmPassword(slug, password.trim())
     setBusy(false)
     if (res.success) {
-      localStorage.setItem(storageKey(slug), '1')
+      localStorage.setItem(storageKey(slug), password.trim())
       setAuthed(true)
     } else {
       setError('Incorrect password.')

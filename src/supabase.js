@@ -94,9 +94,10 @@ export async function getFirm(slug) {
   return callFunction('get-firm', 'GET', null, `?slug=${encodeURIComponent(slug)}`)
 }
 
-/** Update firm settings (requires settings_token). */
-export async function updateFirm(slug, settingsToken, fields) {
-  return callFunction('update-firm', 'POST', { slug, settings_token: settingsToken, ...fields })
+/** Update firm settings. Authenticates via dashboard_password stored in localStorage. */
+export async function updateFirm(slug, fields) {
+  const password = localStorage.getItem(`ct_firm_auth_${slug}`) ?? ''
+  return callFunction('update-firm', 'POST', { slug, dashboard_password: password, ...fields })
 }
 
 /** Admin: list all firms. */
