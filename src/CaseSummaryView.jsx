@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getCaseSummary, acceptCase, rejectCase } from './supabase.js'
+import { onBrand } from './colorUtils.js'
 
 // ── Brand ──────────────────────────────────────────────────────────────────────
 const NAVY = '#1a2e4a'
@@ -130,7 +131,9 @@ function StatusBanner({ status, fluentCaseId }) {
 
 // ── Main view ──────────────────────────────────────────────────────────────────
 
-export default function CaseSummaryView({ caseId, firmSlug = null }) {
+export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }) {
+  const BRAND = firm?.primary_color ?? NAVY
+  const ON    = onBrand(BRAND)
   const [caseData,   setCaseData]   = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [loadError,  setLoadError]  = useState(null)
@@ -244,6 +247,50 @@ export default function CaseSummaryView({ caseId, firmSlug = null }) {
         @keyframes spin    { to { transform: rotate(360deg) } }
       `}</style>
 
+      {/* ── Firm header bar ── */}
+      <header style={{
+        background: BRAND, height: 58, padding: '0 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.18)', flexShrink: 0,
+      }}>
+        <a
+          href={firm ? `/?firm=${firm.slug}&view=dashboard` : '/'}
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
+        >
+          {firm?.logo_url
+            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
+            : <span style={{ fontSize: 20 }}>⚖️</span>
+          }
+          <div>
+            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
+              {firm?.name ?? 'CaseTake'}
+            </div>
+            <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 1 }}>
+              {firm?.tagline ?? "California Workers' Compensation"}
+            </div>
+          </div>
+        </a>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {firm && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: 'white', borderRadius: 20,
+              padding: '4px 10px 4px 8px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+            }}>
+              <span style={{ fontSize: 11 }}>⚖️</span>
+              <span style={{ color: NAVY, fontSize: 10, fontWeight: 700 }}>Powered by CaseTake</span>
+            </div>
+          )}
+          {firm && (
+            <a href={`/?firm=${firm.slug}&view=dashboard`} style={{
+              background: ON.btnBg, color: ON.btnText,
+              border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
+              padding: '6px 13px', fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
+            }}>← Dashboard</a>
+          )}
+        </div>
+      </header>
+
       {/* Confirm dialog */}
       {confirm === 'accept' && (
         <ConfirmDialog
@@ -268,26 +315,32 @@ export default function CaseSummaryView({ caseId, firmSlug = null }) {
 
         {/* ── Letterhead ── */}
         <div style={{
-          background: NAVY, borderRadius: '12px 12px 0 0',
+          background: BRAND, borderRadius: '12px 12px 0 0',
           padding: '24px 30px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: 'rgba(255,255,255,0.12)',
+              background: ON.btnBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-            }}>⚖️</div>
+            }}>
+              {firm?.logo_url
+                ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
+                : '⚖️'}
+            </div>
             <div>
-              <div style={{ color: 'white', fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>CaseTake</div>
-              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 1 }}>
-                California Workers' Compensation
+              <div style={{ color: ON.text, fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>
+                {firm?.name ?? 'CaseTake'}
+              </div>
+              <div style={{ color: ON.textMuted, fontSize: 11, marginTop: 1 }}>
+                {firm?.tagline ?? "California Workers' Compensation"}
               </div>
             </div>
           </div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 4 }}>
+          <div style={{ color: ON.text, fontWeight: 900, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 4 }}>
             Intake Screening Report
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>
+          <div style={{ color: ON.textMuted, fontSize: 13 }}>
             {s.claimant} &nbsp;·&nbsp; {s.intake_date}
           </div>
         </div>
