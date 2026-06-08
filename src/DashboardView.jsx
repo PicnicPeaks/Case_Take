@@ -344,6 +344,17 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
             }}
           >{loading ? '⟳ Loading…' : '⟳ Refresh'}</button>
+          {activeSlug && (
+            <a
+              href={`/?firm=${activeSlug}&view=settings`}
+              style={{
+                background: ON.btnBg, color: ON.btnText,
+                border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
+                padding: '6px 14px', fontSize: 12.5, fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >⚙ Settings</a>
+          )}
           <a
             href={firm ? `/?firm=${firm.slug}` : '/'}
             style={{
