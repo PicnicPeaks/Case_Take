@@ -258,17 +258,19 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
         >
           {firm?.logo_url
-            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
-            : <span style={{ fontSize: 20 }}>⚖️</span>
+            ? <img src={firm.logo_url} alt={firm.name} style={{ maxHeight: 32, maxWidth: 140, objectFit: 'contain' }} />
+            : <>
+                <span style={{ fontSize: 20 }}>⚖️</span>
+                <div>
+                  <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
+                    {firm?.name ?? 'CaseTake'}
+                  </div>
+                  <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 1 }}>
+                    {firm?.tagline ?? "California Workers' Compensation"}
+                  </div>
+                </div>
+              </>
           }
-          <div>
-            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
-              {firm?.name ?? 'CaseTake'}
-            </div>
-            <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 1 }}>
-              {firm?.tagline ?? "California Workers' Compensation"}
-            </div>
-          </div>
         </a>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {firm && (
@@ -332,20 +334,22 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
                 />
               </div>
             ) : (
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: ON.btnBg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-              }}>⚖️</div>
+              <>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: ON.btnBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                }}>⚖️</div>
+                <div>
+                  <div style={{ color: ON.text, fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>
+                    {firm?.name ?? 'CaseTake'}
+                  </div>
+                  <div style={{ color: ON.textMuted, fontSize: 11, marginTop: 1 }}>
+                    {firm?.tagline ?? "California Workers' Compensation"}
+                  </div>
+                </div>
+              </>
             )}
-            <div>
-              <div style={{ color: ON.text, fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>
-                {firm?.name ?? 'CaseTake'}
-              </div>
-              <div style={{ color: ON.textMuted, fontSize: 11, marginTop: 1 }}>
-                {firm?.tagline ?? "California Workers' Compensation"}
-              </div>
-            </div>
           </div>
           <div style={{ color: ON.text, fontWeight: 900, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 4 }}>
             Intake Screening Report

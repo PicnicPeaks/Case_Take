@@ -945,21 +945,22 @@ function LandingScreen({ onStart, language, firm = null }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 9,
-            background: ON.btnBg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-          }}>
-            {firm?.logo_url
-              ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
-              : '⚖️'}
-          </div>
-          <div>
-            <div style={{ color: ON.text, fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
-              {firm?.name ?? 'CaseTake'}
-            </div>
-            <div style={{ color: ON.textMuted, fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
-          </div>
+          {firm?.logo_url
+            ? <img src={firm.logo_url} alt={firm.name} style={{ maxHeight: 36, maxWidth: 160, objectFit: 'contain' }} />
+            : <>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 9,
+                  background: ON.btnBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                }}>⚖️</div>
+                <div>
+                  <div style={{ color: ON.text, fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
+                    {firm?.name ?? 'CaseTake'}
+                  </div>
+                  <div style={{ color: ON.textMuted, fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
+                </div>
+              </>
+          }
         </div>
         {firm && (
           <div style={{
@@ -1281,17 +1282,19 @@ export default function App({ firm = null }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {firm?.logo_url
-            ? <img src={firm.logo_url} alt={firm.name} style={{ height: 34, maxWidth: 120, objectFit: 'contain', borderRadius: 4 }} />
-            : <span style={{ fontSize: 20 }}>⚖️</span>
+            ? <img src={firm.logo_url} alt={firm.name} style={{ maxHeight: 34, maxWidth: 140, objectFit: 'contain' }} />
+            : <>
+                <span style={{ fontSize: 20 }}>⚖️</span>
+                <div>
+                  <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>
+                    {firm?.name ?? 'CaseTake'}
+                  </div>
+                  <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 2 }}>
+                    {firm?.tagline ?? 'California • Case Screening'}
+                  </div>
+                </div>
+              </>
           }
-          <div>
-            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1, letterSpacing: '-0.2px' }}>
-              {firm?.name ?? 'CaseTake'}
-            </div>
-            <div style={{ color: ON.textMuted, fontSize: 10.5, marginTop: 2 }}>
-              {firm?.tagline ?? 'California • Case Screening'}
-            </div>
-          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

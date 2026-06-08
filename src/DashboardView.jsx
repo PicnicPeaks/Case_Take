@@ -307,20 +307,22 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
           >
             {firm?.logo_url
               ? <img src={firm.logo_url} alt={firm.name} style={{ height: 32, objectFit: 'contain' }} />
-              : <div style={{
-                  width: 36, height: 36, borderRadius: 9,
-                  background: ON.btnBg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                }}>⚖️</div>
+              : <>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9,
+                    background: ON.btnBg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                  }}>⚖️</div>
+                  <div>
+                    <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
+                      {firm?.name ?? 'CaseTake'}
+                    </div>
+                    <div style={{ color: ON.textMuted, fontSize: 10.5 }}>
+                      {firm?.tagline ?? "California • Workers' Comp"}
+                    </div>
+                  </div>
+                </>
             }
-            <div>
-              <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
-                {firm?.name ?? 'CaseTake'}
-              </div>
-              <div style={{ color: ON.textMuted, fontSize: 10.5 }}>
-                {firm?.tagline ?? "California • Workers' Comp"}
-              </div>
-            </div>
           </a>
           <div style={{ width: 1, height: 28, background: ON.btnBorder, margin: '0 6px' }} />
           <div style={{ color: ON.text, fontWeight: 700, fontSize: 14, opacity: 0.9 }}>

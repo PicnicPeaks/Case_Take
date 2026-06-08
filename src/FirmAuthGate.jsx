@@ -53,10 +53,12 @@ export default function FirmAuthGate({ firm, firmSlug, children }) {
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       }}>
         {firm?.logo_url
-          ? <img src={firm.logo_url} alt={firm.name} style={{ height: 28, objectFit: 'contain' }} />
-          : <span style={{ fontSize: 18 }}>⚖️</span>
+          ? <img src={firm.logo_url} alt={firm.name} style={{ maxHeight: 30, maxWidth: 130, objectFit: 'contain' }} />
+          : <>
+              <span style={{ fontSize: 18 }}>⚖️</span>
+              <span style={{ color: ON.text, fontWeight: 800, fontSize: 14 }}>{firm?.name ?? 'CaseTake'}</span>
+            </>
         }
-        <span style={{ color: ON.text, fontWeight: 800, fontSize: 14 }}>{firm?.name ?? 'CaseTake'}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, background: 'white', borderRadius: 20, padding: '3px 9px 3px 7px' }}>
           <span style={{ fontSize: 11 }}>⚖️</span>
           <span style={{ color: NAVY, fontSize: 10, fontWeight: 700 }}>Powered by CaseTake</span>

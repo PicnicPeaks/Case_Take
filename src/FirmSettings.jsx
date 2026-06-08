@@ -140,11 +140,14 @@ export default function FirmSettings({ firmSlug }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {firm.logo_url
             ? <img src={firm.logo_url} alt={firm.name} style={{ height: 32, objectFit: 'contain' }} />
-            : <span style={{ fontSize: 20 }}>⚖️</span>}
-          <div>
-            <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{firm.name}</div>
-            <div style={{ color: ON.textMuted, fontSize: 10.5 }}>Firm Settings</div>
-          </div>
+            : <>
+                <span style={{ fontSize: 20 }}>⚖️</span>
+                <div>
+                  <div style={{ color: ON.text, fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{firm.name}</div>
+                  <div style={{ color: ON.textMuted, fontSize: 10.5 }}>Firm Settings</div>
+                </div>
+              </>
+          }
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <a href={`/?firm=${firmSlug}&view=dashboard`} style={{
