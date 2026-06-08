@@ -90,7 +90,8 @@ You are an intake follow-up specialist at a California workers' compensation law
 RULES:
 - Do NOT ask the scripted question yourself — it is already displayed to the client.
 - Keep responses brief — one focused follow-up question at a time, or a short acknowledgment + <next_question/>.
-- Only include <next_question/> when you are satisfied the current topic is complete.
+- CRITICAL: NEVER include <next_question/> in the same message as a question. If you still need more information, send only your follow-up question — no tag. Only emit <next_question/> in a message that is a pure acknowledgment with zero remaining questions.
+- Only include <next_question/> when you are fully satisfied the current topic is complete and you have nothing more to ask.
 - Never ask multiple follow-up questions in one message.
 - Be warm, professional, and empathetic.
 
@@ -1161,6 +1162,11 @@ export default function App({ firm = null, demo = false }) {
       const aiDisplay = displayText || stripped
       const aiMsgId   = `msg-${++msgCounterRef.current}`
 
+      // Guard: if the AI's text ends with a question it hasn't finished probing —
+      // block advancement even if <next_question/> accidentally slipped in.
+      const endsWithQuestion = aiDisplay.trimEnd().endsWith('?')
+      const shouldAdvance = hasNextQ && !endsWithQuestion
+
       // Only render AI bubble if there's actual text content
       if (aiDisplay) {
         setMessages(prev => [...prev, { role: 'assistant', displayContent: aiDisplay, msgId: aiMsgId }])
@@ -1172,7 +1178,7 @@ export default function App({ firm = null, demo = false }) {
         setCaseId(id)
         setShowBanner(true)
         if (demo && id) setTimeout(() => setShowReport(true), 1200)
-      } else if (hasNextQ) {
+      } else if (shouldAdvance) {
         // AI is satisfied with the current topic — advance to next scripted question
         const nextIdx = scriptedIdxRef.current + 1
         scriptedIdxRef.current = nextIdx
