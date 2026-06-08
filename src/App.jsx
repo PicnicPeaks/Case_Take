@@ -1179,9 +1179,10 @@ export default function App({ firm = null, demo = false }) {
 
         const questions = getQuestions(languageRef.current)
         if (nextIdx < questions.length) {
-          // Show the next scripted question (form or chat)
-          setMessages(prev => [...prev, makeScriptedMsg(questions[nextIdx])])
-          // Don't add to conversationRef here — system prompt carries the current question context
+          // Delay so the AI's acknowledgment bubble renders before the next question card appears
+          setTimeout(() => {
+            setMessages(prev => [...prev, makeScriptedMsg(questions[nextIdx])])
+          }, 500)
         } else {
           // All 9 questions done — auto-trigger summary generation
           const triggerHistory = [
