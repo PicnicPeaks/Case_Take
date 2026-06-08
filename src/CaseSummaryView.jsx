@@ -318,12 +318,26 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
           background: BRAND, borderRadius: '12px 12px 0 0',
           padding: '24px 30px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: ON.btnBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-            }}>⚖️</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+            {firm?.logo_url ? (
+              <div style={{
+                background: 'white', borderRadius: 10, padding: '7px 14px',
+                boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <img
+                  src={firm.logo_url}
+                  alt={firm.name}
+                  style={{ maxHeight: 38, maxWidth: 140, objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+            ) : (
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: ON.btnBg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              }}>⚖️</div>
+            )}
             <div>
               <div style={{ color: ON.text, fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>
                 {firm?.name ?? 'CaseTake'}
