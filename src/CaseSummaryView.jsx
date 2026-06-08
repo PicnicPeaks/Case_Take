@@ -323,11 +323,7 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
               width: 40, height: 40, borderRadius: 10,
               background: ON.btnBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-            }}>
-              {firm?.logo_url
-                ? <img src={firm.logo_url} alt={firm.name} style={{ height: 30, objectFit: 'contain' }} />
-                : '⚖️'}
-            </div>
+            }}>⚖️</div>
             <div>
               <div style={{ color: ON.text, fontWeight: 900, fontSize: 18, letterSpacing: '-0.3px' }}>
                 {firm?.name ?? 'CaseTake'}
