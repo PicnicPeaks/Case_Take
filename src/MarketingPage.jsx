@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const NAVY   = '#1a2e4a'
 const GOLD   = '#f59e0b'
 const GOLD2  = '#d97706'
@@ -82,6 +84,15 @@ function Stat({ value, label }) {
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 export default function MarketingPage() {
+  const [showLogin, setShowLogin] = useState(false)
+  const [firmInput, setFirmInput] = useState('')
+
+  const handleFirmLogin = (e) => {
+    e.preventDefault()
+    const slug = firmInput.trim().toLowerCase()
+    if (slug) window.location.href = `/?firm=${encodeURIComponent(slug)}&view=dashboard`
+  }
+
   return (
     <div style={{ fontFamily: "system-ui,-apple-system,'Segoe UI',sans-serif", background: 'white', color: '#111827' }}>
       <style>{`
@@ -115,10 +126,37 @@ export default function MarketingPage() {
             onMouseOver={e => (e.target.style.background = '#f3f4f6')}
             onMouseOut={e => (e.target.style.background = 'transparent')}
           >Try Demo</a>
-          <a href="/?admin" style={{
-            background: NAVY, color: 'white', fontWeight: 700, fontSize: 13,
-            textDecoration: 'none', padding: '8px 18px', borderRadius: 8,
-          }}>Admin</a>
+          {showLogin ? (
+            <form onSubmit={handleFirmLogin} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                autoFocus
+                value={firmInput}
+                onChange={e => setFirmInput(e.target.value)}
+                placeholder="your-firm-id"
+                style={{
+                  border: '1.5px solid #d1d5db', borderRadius: 8,
+                  padding: '7px 12px', fontSize: 13, outline: 'none',
+                  width: 148, color: '#111827',
+                }}
+                onFocus={e => (e.target.style.borderColor = NAVY)}
+                onBlur={e  => (e.target.style.borderColor = '#d1d5db')}
+              />
+              <button type="submit" style={{
+                background: NAVY, color: 'white', border: 'none',
+                borderRadius: 8, padding: '8px 15px', fontSize: 13,
+                fontWeight: 700, cursor: 'pointer',
+              }}>Go →</button>
+              <button type="button" onClick={() => { setShowLogin(false); setFirmInput('') }} style={{
+                background: 'none', border: '1px solid #e5e7eb', borderRadius: 8,
+                padding: '7px 10px', fontSize: 13, cursor: 'pointer', color: '#9ca3af',
+              }}>✕</button>
+            </form>
+          ) : (
+            <button onClick={() => setShowLogin(true)} style={{
+              background: NAVY, color: 'white', fontWeight: 700, fontSize: 13,
+              border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer',
+            }}>Firm Login</button>
+          )}
         </div>
       </nav>
 
@@ -325,7 +363,6 @@ export default function MarketingPage() {
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           <a href="/?demo" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
           <a href="mailto:hello@picnicpeaks.com" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Contact</a>
-          <a href="/?admin" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textDecoration: 'none' }}>Admin</a>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
           © {new Date().getFullYear()} Picnic Peaks LLC
