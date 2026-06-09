@@ -466,14 +466,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   const resendKey   = Deno.env.get('RESEND_API_KEY')
-  const firmEmail   = Deno.env.get('FIRM_EMAIL')
   const caseBaseUrl = Deno.env.get('CASE_BASE_URL') ?? 'https://casetake.picnicpeaks.com'
   const FROM_ADDRESS = 'casetake@notifications.picnicpeaks.com'
 
-  if (!resendKey || !firmEmail) {
-    console.error('Missing RESEND_API_KEY or FIRM_EMAIL')
+  if (!resendKey) {
+    console.error('Missing RESEND_API_KEY')
     return new Response(
-      JSON.stringify({ error: 'Missing required env vars' }),
+      JSON.stringify({ error: 'Missing RESEND_API_KEY' }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     )
   }
@@ -481,35 +480,47 @@ serve(async (req) => {
   const payload  = await req.json()
   const record   = payload.record
   const s        = (record?.summary ?? {}) as Record<string, unknown>
-  const caseId   = record?.id   as string | undefined
+  const caseId   = record?.id        as string | undefined
   const firmSlug = record?.firm_slug as string | undefined
-  const reportUrl = caseId
-    ? `${caseBaseUrl}?${firmSlug ? `firm=${encodeURIComponent(firmSlug)}&` : ''}case=${caseId}`
-    : null
 
-  // ── Load firm config if this intake belongs to a firm ──────────────────
-  let firmRecipients: string[] = firmEmail.split(',').map((e: string) => e.trim()).filter(Boolean)
+  // Non-firm intakes (demos, direct) never send email
+  if (!firmSlug) {
+    console.log('No firm_slug — skipping email for non-firm intake', caseId)
+    return new Response(JSON.stringify({ skipped: true }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const reportUrl = `${caseBaseUrl}?firm=${encodeURIComponent(firmSlug)}&case=${caseId}`
+
+  // ── Load firm config ───────────────────────────────────────────────────
+  let firmRecipients: string[] = []
   let effectiveFrom = `CaseTake <${FROM_ADDRESS}>`
 
-  if (firmSlug) {
-    try {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      )
-      const { data: firm } = await supabase
-        .from('firms')
-        .select('intake_emails, name')
-        .eq('slug', firmSlug)
-        .single()
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+    const { data: firm } = await supabase
+      .from('firms')
+      .select('intake_emails, name')
+      .eq('slug', firmSlug)
+      .single()
 
-      if (firm) {
-        if (firm.intake_emails?.length) firmRecipients = firm.intake_emails
-        if (firm.name) effectiveFrom = `${firm.name} <${FROM_ADDRESS}>`
-      }
-    } catch (e) {
-      console.error('Failed to load firm config:', e)
+    if (firm) {
+      if (firm.intake_emails?.length) firmRecipients = firm.intake_emails
+      if (firm.name) effectiveFrom = `${firm.name} <${FROM_ADDRESS}>`
     }
+  } catch (e) {
+    console.error('Failed to load firm config:', e)
+  }
+
+  if (!firmRecipients.length) {
+    console.log('Firm has no intake_emails configured — skipping email for', firmSlug)
+    return new Response(JSON.stringify({ skipped: true, reason: 'no recipients' }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
   }
 
   const results: Record<string, unknown> = {}
