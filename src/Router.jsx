@@ -102,8 +102,8 @@ function FirmCase() {
 }
 
 function FirmSIBTF() {
-  const { firm, slug } = useOutletContext()
-  return <FirmAuthGate firm={firm} firmSlug={slug}><SIBTFView firm={firm} /></FirmAuthGate>
+  const { firm } = useOutletContext()
+  return <SIBTFView firm={firm} />
 }
 
 // ── Root router ────────────────────────────────────────────────────────────────
