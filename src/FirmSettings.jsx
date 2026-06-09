@@ -14,8 +14,6 @@ export default function FirmSettings({ firmSlug }) {
   const [logoUrl,       setLogoUrl]       = useState('')
   const [primaryColor,  setPrimaryColor]  = useState('#1a2e4a')
   const [intakeEmails,  setIntakeEmails]  = useState('')
-  const [fromEmail,     setFromEmail]     = useState('')
-  const [fromName,      setFromName]      = useState('')
   const [fluentKey,     setFluentKey]     = useState('')
   const [showFluentKey, setShowFluentKey] = useState(false)
 
@@ -32,8 +30,6 @@ export default function FirmSettings({ firmSlug }) {
           setLogoUrl(data.logo_url ?? '')
           setPrimaryColor(data.primary_color ?? '#1a2e4a')
           setIntakeEmails((data.intake_emails ?? []).join(', '))
-          setFromEmail(data.from_email ?? '')
-          setFromName(data.from_name ?? '')
         }
       })
       .finally(() => setLoading(false))
@@ -48,11 +44,9 @@ export default function FirmSettings({ firmSlug }) {
     const fields = {
       name,
       tagline,
-      logo_url:      logoUrl      || null,
+      logo_url:      logoUrl || null,
       primary_color: primaryColor,
       intake_emails: intakeEmails.split(',').map(e => e.trim()).filter(Boolean),
-      from_email:    fromEmail    || null,
-      from_name:     fromName     || null,
       ...(fluentKey.trim() ? { fluent_case_api_key: fluentKey.trim() } : {}),
     }
     const res = await updateFirm(firmSlug, fields)
@@ -221,18 +215,9 @@ export default function FirmSettings({ firmSlug }) {
                   onFocus={e => (e.target.style.borderColor = BRAND)}
                   onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
               </Field>
-              <Field label="From name" hint="Shown as the sender name in outgoing emails">
-                <input value={fromName} onChange={e => setFromName(e.target.value)}
-                  style={inputStyle} placeholder="Smith & Associates"
-                  onFocus={e => (e.target.style.borderColor = BRAND)}
-                  onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
-              </Field>
-              <Field label="From email" hint="Reply-to address for outgoing emails">
-                <input value={fromEmail} onChange={e => setFromEmail(e.target.value)}
-                  style={inputStyle} type="email" placeholder="intakes@firm.com"
-                  onFocus={e => (e.target.style.borderColor = BRAND)}
-                  onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
-              </Field>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2, lineHeight: 1.6 }}>
+                Emails are sent from <strong style={{ color: '#6b7280' }}>{name || 'your firm name'} via CaseTake</strong> using <code style={{ background: '#f3f4f6', borderRadius: 4, padding: '1px 5px' }}>casetake@notifications.picnicpeaks.com</code>. The sender name is taken from your Firm Name above.
+              </div>
             </Card>
 
             {/* Fluent Case */}

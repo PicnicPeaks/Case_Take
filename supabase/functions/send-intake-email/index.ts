@@ -467,8 +467,8 @@ serve(async (req) => {
 
   const resendKey   = Deno.env.get('RESEND_API_KEY')
   const firmEmail   = Deno.env.get('FIRM_EMAIL')
-  const fromEmail   = Deno.env.get('FROM_EMAIL')   ?? 'CaseTake <onboarding@resend.dev>'
   const caseBaseUrl = Deno.env.get('CASE_BASE_URL') ?? 'https://casetake.picnicpeaks.com'
+  const FROM_ADDRESS = 'casetake@notifications.picnicpeaks.com'
 
   if (!resendKey || !firmEmail) {
     console.error('Missing RESEND_API_KEY or FIRM_EMAIL')
@@ -489,7 +489,7 @@ serve(async (req) => {
 
   // ── Load firm config if this intake belongs to a firm ──────────────────
   let firmRecipients: string[] = firmEmail.split(',').map((e: string) => e.trim()).filter(Boolean)
-  let effectiveFrom  = fromEmail
+  let effectiveFrom = `CaseTake <${FROM_ADDRESS}>`
 
   if (firmSlug) {
     try {
@@ -499,17 +499,13 @@ serve(async (req) => {
       )
       const { data: firm } = await supabase
         .from('firms')
-        .select('intake_emails, from_email, from_name, name')
+        .select('intake_emails, name')
         .eq('slug', firmSlug)
         .single()
 
       if (firm) {
         if (firm.intake_emails?.length) firmRecipients = firm.intake_emails
-        if (firm.from_email) {
-          effectiveFrom = firm.from_name
-            ? `${firm.from_name} <${firm.from_email}>`
-            : firm.from_email
-        }
+        if (firm.name) effectiveFrom = `${firm.name} <${FROM_ADDRESS}>`
       }
     } catch (e) {
       console.error('Failed to load firm config:', e)
