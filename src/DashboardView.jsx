@@ -74,8 +74,8 @@ function IntakeRow({ intake, isEven, firmSlug = null }) {
   const bg     = VIA_BG[label]     ?? '#f9fafb'
   const ss     = STATUS_STYLE[intake.status] ?? STATUS_STYLE.pending
   const caseUrl = firmSlug
-    ? `?firm=${encodeURIComponent(firmSlug)}&case=${intake.id}`
-    : `?case=${intake.id}`
+    ? `/firm/${encodeURIComponent(firmSlug)}/case/${intake.id}`
+    : `/case/${intake.id}`
 
   return (
     <tr
@@ -302,7 +302,7 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <a
-            href={firm ? `/?firm=${firm.slug}` : '/'}
+            href={firm ? `/firm/${firm.slug}` : '/'}
             style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
           >
             {firm?.logo_url
@@ -346,7 +346,7 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
           >{loading ? '⟳ Loading…' : '⟳ Refresh'}</button>
           {activeSlug && (
             <a
-              href={`/?firm=${activeSlug}&view=settings`}
+              href={`/firm/${activeSlug}/settings`}
               style={{
                 background: ON.btnBg, color: ON.btnText,
                 border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
@@ -356,7 +356,7 @@ export default function DashboardView({ firm = null, firmSlug: firmSlugProp = nu
             >⚙ Settings</a>
           )}
           <a
-            href={firm ? `/?firm=${firm.slug}` : '/'}
+            href={firm ? `/firm/${firm.slug}` : '/'}
             style={{
               background: ON.btnPrimary, color: ON.btnPrimaryText,
               border: 'none', borderRadius: 7,

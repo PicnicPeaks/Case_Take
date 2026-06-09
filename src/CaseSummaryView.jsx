@@ -8,6 +8,153 @@ const NAVY = '#1a2e4a'
 const VIA_COLOR = { Strong: '#16a34a', Moderate: '#ca8a04', Weak: '#ea580c', Declined: '#dc2626' }
 const VIA_BG    = { Strong: '#f0fdf4', Moderate: '#fefce8', Weak: '#fff7ed',  Declined: '#fef2f2' }
 
+// ── SIBTF helpers ──────────────────────────────────────────────────────────────
+
+function YesNoBadge({ value }) {
+  const s = String(value ?? '').toLowerCase()
+  const isYes = s.includes('yes') || s.includes('has it') || s.includes('signed') || s.includes('already')
+  const isNo  = s.includes('no') || s.includes('missing') || s.includes('must sign') || s.includes('needs')
+  if (!isYes && !isNo) return <span style={{ fontSize: 13.5, color: '#111827' }}>{value || '—'}</span>
+  return (
+    <span style={{
+      display: 'inline-block',
+      background: isYes ? '#f0fdf4' : '#fef2f2',
+      color:      isYes ? '#15803d' : '#dc2626',
+      border:     `1px solid ${isYes ? '#86efac' : '#fca5a5'}`,
+      borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700,
+    }}>{value}</span>
+  )
+}
+
+function SIBTFReport({ s }) {
+  const docs = Array.isArray(s.documents_needed) ? s.documents_needed : []
+  return (
+    <>
+      {/* Documents callout */}
+      {docs.length > 0 ? (
+        <div style={{
+          background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 10,
+          padding: '16px 20px', marginBottom: 28,
+        }}>
+          <div style={{
+            fontWeight: 800, fontSize: 12, color: '#dc2626',
+            textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10,
+          }}>⚠️ &nbsp;Documents / Signatures Still Needed</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {docs.map((d, i) => (
+              <div key={i} style={{
+                background: 'white', border: '1px solid #fecaca', borderRadius: 6,
+                padding: '6px 12px', fontSize: 13, color: '#9a3412',
+              }}>• {d}</div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10,
+          padding: '14px 20px', marginBottom: 28, fontSize: 13.5, color: '#15803d', fontWeight: 700,
+        }}>
+          ✅ &nbsp;All required documents and signatures appear to be in order.
+        </div>
+      )}
+
+      <Section icon="👤" title="Client Information">
+        <Field label="Full Name"      value={s.claimant} />
+        <Field label="Phone"          value={s.phone} />
+        <Field label="Date of Injury" value={s.doi} />
+        <Field label="Claim Number"   value={s.claim_number} />
+        <Field label="Intake Date"    value={s.intake_date} />
+        <Field label="Legal Status"   value={s.legal_status} />
+        {s.affidavit_re_status_needed === 'Yes' && (
+          <div style={{
+            background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6,
+            padding: '7px 12px', fontSize: 13, color: '#78350f', marginTop: 6,
+          }}>
+            ⚠️ <strong>Affidavit re Status required</strong> — client is not a legal U.S. resident
+          </div>
+        )}
+      </Section>
+
+      <Section icon="🏛️" title="Social Security / SSDI">
+        <Field label="SSA Status" value={s.ssa_status} />
+        {val(s.benefit_verification_letter) && (
+          <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>Benefit Verification Letter</div>
+            <div style={{ flex: 1 }}><YesNoBadge value={s.benefit_verification_letter} /></div>
+          </div>
+        )}
+        {val(s.ssdi_award_notice) && (
+          <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>SSDI Award Notice</div>
+            <div style={{ flex: 1 }}><YesNoBadge value={s.ssdi_award_notice} /></div>
+          </div>
+        )}
+        {val(s.ssdi_1099s) && (
+          <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>SSDI 1099s</div>
+            <div style={{ flex: 1 }}><YesNoBadge value={s.ssdi_1099s} /></div>
+          </div>
+        )}
+        {val(s.current_year_rate) && (
+          <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>Current Year Rate</div>
+            <div style={{ flex: 1 }}><YesNoBadge value={s.current_year_rate} /></div>
+          </div>
+        )}
+        {val(s.consent_for_release) && (
+          <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>Consent for Release</div>
+            <div style={{ flex: 1 }}><YesNoBadge value={s.consent_for_release} /></div>
+          </div>
+        )}
+      </Section>
+
+      <Section icon="💰" title="Pension">
+        <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ flex: '0 0 180px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 1 }}>Pension Release Signed</div>
+          <div style={{ flex: 1 }}><YesNoBadge value={s.pension_release_signed} /></div>
+        </div>
+        <Field label="Receiving Pension" value={s.receiving_pension} />
+        {val(s.pension_details) && <Field label="Pension Details" value={s.pension_details} />}
+      </Section>
+
+      <Section icon="🏢" title="CALPERs">
+        <Field label="CALPERs Member" value={s.calpers_member} />
+        {s.calpers_release_needed === 'Yes' && (
+          <div style={{
+            background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6,
+            padding: '7px 12px', fontSize: 13, color: '#9a3412', marginTop: 6,
+          }}>
+            ⚠️ Must sign undated CALPERs Release
+          </div>
+        )}
+      </Section>
+
+      <Section icon="🚗" title="MVA Settlements">
+        <Field label="MVA Settlement Received" value={s.mva_settlement} />
+        {val(s.mva_details) && <Field label="Details" value={s.mva_details} />}
+      </Section>
+
+      <Section icon="💼" title="Work History (Past 10 Years)">
+        <Field label="Working Past 10 Years" value={s.work_history_10yr} />
+        {val(s.work_years)        && <Field label="Years Worked"     value={s.work_years} />}
+        {val(s.work_schedule)     && <Field label="Schedule"         value={s.work_schedule} />}
+        {val(s.new_work_injuries) && <Field label="New Work Injuries" value={s.new_work_injuries} />}
+        {val(s.new_injury_details)&& <Field label="Injury Details"   value={s.new_injury_details} />}
+      </Section>
+
+      {val(s.notes) && (
+        <Section icon="📝" title="Notes">
+          <div style={{
+            background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8,
+            padding: '13px 16px', fontSize: 13.5, color: '#78350f', lineHeight: 1.7,
+          }}>{s.notes}</div>
+        </Section>
+      )}
+    </>
+  )
+}
+
 // ── Small helpers ──────────────────────────────────────────────────────────────
 
 function val(v) {
@@ -229,6 +376,7 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
   const s            = (caseData.summary ?? {})
   const status       = caseData.status    ?? 'pending'
   const fluentCaseId = caseData.fluent_case_id
+  const isSIBTF      = s.type === 'sibtf'
   const label        = String(s.viability_label ?? '')
   const color        = VIA_COLOR[label]   ?? '#6b7280'
   const bg           = VIA_BG[label]      ?? '#f9fafb'
@@ -254,7 +402,7 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
         boxShadow: '0 2px 10px rgba(0,0,0,0.18)', flexShrink: 0,
       }}>
         <a
-          href={firm ? `/?firm=${firm.slug}&view=dashboard` : '/'}
+          href={firm ? `/firm/${firm.slug}/dashboard` : '/'}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
         >
           {firm?.logo_url
@@ -284,7 +432,7 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
             </div>
           )}
           {firm && (
-            <a href={`/?firm=${firm.slug}&view=dashboard`} style={{
+            <a href={`/firm/${firm.slug}/dashboard`} style={{
               background: ON.btnBg, color: ON.btnText,
               border: `1px solid ${ON.btnBorder}`, borderRadius: 7,
               padding: '6px 13px', fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
@@ -352,10 +500,13 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
             )}
           </div>
           <div style={{ color: ON.text, fontWeight: 900, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 4 }}>
-            Intake Screening Report
+            {isSIBTF ? 'SIBTF Information Gathering Report' : 'Intake Screening Report'}
           </div>
           <div style={{ color: ON.textMuted, fontSize: 13 }}>
-            {s.claimant} &nbsp;·&nbsp; {s.intake_date}
+            {isSIBTF
+              ? <>{s.claimant} &nbsp;·&nbsp; DOI: {s.doi} &nbsp;·&nbsp; {s.intake_date}</>
+              : <>{s.claimant} &nbsp;·&nbsp; {s.intake_date}</>
+            }
           </div>
         </div>
 
@@ -369,130 +520,124 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
           {/* Status banner (accepted / rejected) */}
           <StatusBanner status={status} fluentCaseId={fluentCaseId} />
 
-          {/* Viability badge */}
-          <div style={{
-            background: bg, border: `1.5px solid ${color}40`, borderRadius: 10,
-            padding: '16px 20px', marginBottom: 28,
-          }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: color, color: 'white', borderRadius: 20,
-              padding: '4px 16px', fontWeight: 800, fontSize: 14, marginBottom: 10,
-            }}>
-              <span>{label}</span>
-              <span style={{ opacity: 0.75 }}>·</span>
-              <span>{score}/100</span>
-            </div>
-            <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
-              {s.recommendation}
-            </div>
-          </div>
-
-          {/* Red flags */}
-          {flags.length > 0 && (
-            <Section icon="⚠️" title="Red Flags">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {flags.map((f, i) => (
-                  <div key={i} style={{
-                    background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 7,
-                    padding: '8px 13px', fontSize: 13, color: '#9a3412', lineHeight: 1.55,
-                  }}>
-                    ⚑ {String(f)}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {/* Client Information */}
-          <Section icon="👤" title="Client Information">
-            <Field label="Full Name"        value={s.claimant} />
-            <Field label="Phone"            value={s.phone} />
-            <Field label="Email"            value={s.email} />
-            <Field label="Intake Date"      value={s.intake_date} />
-            <Field label="Attorney Status"  value={s.attorney_represented} />
-          </Section>
-
-          {/* Employment */}
-          <Section icon="🏢" title="Employment">
-            <Field label="Employer"         value={s.employer} />
-            <Field label="Job Title"        value={s.job_title} />
-            <Field label="Employment Type"  value={s.employment_type} />
-            <Field label="Hours / Week"     value={s.hours_per_week} />
-          </Section>
-
-          {/* Injury Details */}
-          <Section icon="🩹" title="Injury Details">
-            <Field label="Date of Injury"   value={s.injury_date} />
-            <Field label="Time"             value={s.injury_time} />
-            <Field label="Location"         value={s.injury_location} />
-            <Field label="Body Part(s)"     value={s.body_part} />
-            <Field label="Current Status"   value={s.current_status} />
-            {val(s.injury_description) && (
-              <div style={{ marginTop: 12 }}>
+          {isSIBTF ? <SIBTFReport s={s} /> : (
+            <>
+              {/* Viability badge */}
+              <div style={{
+                background: bg, border: `1.5px solid ${color}40`, borderRadius: 10,
+                padding: '16px 20px', marginBottom: 28,
+              }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, color: '#6b7280',
-                  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
-                }}>How It Happened</div>
-                <div style={{ fontSize: 13.5, color: '#111827', lineHeight: 1.7 }}>
-                  {s.injury_description}
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: color, color: 'white', borderRadius: 20,
+                  padding: '4px 16px', fontWeight: 800, fontSize: 14, marginBottom: 10,
+                }}>
+                  <span>{label}</span>
+                  <span style={{ opacity: 0.75 }}>·</span>
+                  <span>{score}/100</span>
+                </div>
+                <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
+                  {s.recommendation}
                 </div>
               </div>
-            )}
-          </Section>
 
-          {/* Reporting */}
-          <Section icon="📋" title="Reporting">
-            <Field label="Reported to Employer"  value={s.reported_to_employer} />
-            <Field label="Written Report Filed"  value={s.written_report_filed} />
-            <Field label="DWC-1 Claim Form"      value={s.dwc1_provided} />
-            <Field label="Adjuster Contacted"    value={s.adjuster_contacted} />
-          </Section>
+              {/* Red flags */}
+              {flags.length > 0 && (
+                <Section icon="⚠️" title="Red Flags">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {flags.map((f, i) => (
+                      <div key={i} style={{
+                        background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 7,
+                        padding: '8px 13px', fontSize: 13, color: '#9a3412', lineHeight: 1.55,
+                      }}>
+                        ⚑ {String(f)}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
 
-          {/* Medical Treatment */}
-          <Section icon="🏥" title="Medical Treatment">
-            <Field label="Facility"         value={s.medical_facility} />
-            <Field label="Doctor"           value={s.treating_doctor} />
-            <Field label="First Visit"      value={s.first_treatment_date} />
-            <Field label="Treating Via"     value={s.treating_type} />
-          </Section>
+              <Section icon="👤" title="Client Information">
+                <Field label="Full Name"        value={s.claimant} />
+                <Field label="Phone"            value={s.phone} />
+                <Field label="Email"            value={s.email} />
+                <Field label="Intake Date"      value={s.intake_date} />
+                <Field label="Attorney Status"  value={s.attorney_represented} />
+              </Section>
 
-          {/* Claim Status */}
-          <Section icon="⚖️" title="Claim Status & Medical Disputes">
-            <Field label="Claim Decision"     value={s.claim_status} />
-            <Field label="Denial Reason"      value={s.denial_reason} />
-            <Field label="Treatment Denied"   value={s.treatment_denied} />
-            <Field label="QME / AME Stage"    value={s.qme_stage} />
-            <Field label="QME / AME Findings" value={s.qme_findings} />
-            <Field label="P&S Declared"       value={s.ps_declared} />
-          </Section>
+              <Section icon="🏢" title="Employment">
+                <Field label="Employer"         value={s.employer} />
+                <Field label="Job Title"        value={s.job_title} />
+                <Field label="Employment Type"  value={s.employment_type} />
+                <Field label="Hours / Week"     value={s.hours_per_week} />
+              </Section>
 
-          {/* Witnesses */}
-          <Section icon="👥" title="Witnesses">
-            <Field label="Witness Info" value={s.witnesses} />
-          </Section>
+              <Section icon="🩹" title="Injury Details">
+                <Field label="Date of Injury"   value={s.injury_date} />
+                <Field label="Time"             value={s.injury_time} />
+                <Field label="Location"         value={s.injury_location} />
+                <Field label="Body Part(s)"     value={s.body_part} />
+                <Field label="Current Status"   value={s.current_status} />
+                {val(s.injury_description) && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
+                    }}>How It Happened</div>
+                    <div style={{ fontSize: 13.5, color: '#111827', lineHeight: 1.7 }}>
+                      {s.injury_description}
+                    </div>
+                  </div>
+                )}
+              </Section>
 
-          {/* Prior Injury History */}
-          <Section icon="📁" title="Prior Injury History">
-            <Field label="Prior Injuries" value={s.prior_injuries} />
-          </Section>
+              <Section icon="📋" title="Reporting">
+                <Field label="Reported to Employer"  value={s.reported_to_employer} />
+                <Field label="Written Report Filed"  value={s.written_report_filed} />
+                <Field label="DWC-1 Claim Form"      value={s.dwc1_provided} />
+                <Field label="Adjuster Contacted"    value={s.adjuster_contacted} />
+              </Section>
 
-          {/* Recorded Statements */}
-          <Section icon="🎙️" title="Recorded Statements">
-            <Field label="Statement Given" value={s.recorded_statement} />
-            <Field label="Details"         value={s.recorded_statement_details} />
-          </Section>
+              <Section icon="🏥" title="Medical Treatment">
+                <Field label="Facility"         value={s.medical_facility} />
+                <Field label="Doctor"           value={s.treating_doctor} />
+                <Field label="First Visit"      value={s.first_treatment_date} />
+                <Field label="Treating Via"     value={s.treating_type} />
+              </Section>
 
-          {/* Attorney Notes */}
-          {val(s.notes) && (
-            <Section icon="📝" title="Attorney Notes">
-              <div style={{
-                background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8,
-                padding: '13px 16px', fontSize: 13.5, color: '#78350f', lineHeight: 1.7,
-              }}>
-                {s.notes}
-              </div>
-            </Section>
+              <Section icon="⚖️" title="Claim Status & Medical Disputes">
+                <Field label="Claim Decision"     value={s.claim_status} />
+                <Field label="Denial Reason"      value={s.denial_reason} />
+                <Field label="Treatment Denied"   value={s.treatment_denied} />
+                <Field label="QME / AME Stage"    value={s.qme_stage} />
+                <Field label="QME / AME Findings" value={s.qme_findings} />
+                <Field label="P&S Declared"       value={s.ps_declared} />
+              </Section>
+
+              <Section icon="👥" title="Witnesses">
+                <Field label="Witness Info" value={s.witnesses} />
+              </Section>
+
+              <Section icon="📁" title="Prior Injury History">
+                <Field label="Prior Injuries" value={s.prior_injuries} />
+              </Section>
+
+              <Section icon="🎙️" title="Recorded Statements">
+                <Field label="Statement Given" value={s.recorded_statement} />
+                <Field label="Details"         value={s.recorded_statement_details} />
+              </Section>
+
+              {val(s.notes) && (
+                <Section icon="📝" title="Attorney Notes">
+                  <div style={{
+                    background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8,
+                    padding: '13px 16px', fontSize: 13.5, color: '#78350f', lineHeight: 1.7,
+                  }}>
+                    {s.notes}
+                  </div>
+                </Section>
+              )}
+            </>
           )}
 
           {/* ── Action buttons ── */}
@@ -536,7 +681,9 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
                 onMouseOver={e => !actionBusy && (e.currentTarget.style.background = '#15803d')}
                 onMouseOut={e  => !actionBusy && (e.currentTarget.style.background = '#16a34a')}
               >
-                {actionBusy ? '⏳ Sending to Fluent Case…' : '✓ Accept & Send to Fluent Case'}
+                {actionBusy
+                  ? '⏳ Processing…'
+                  : isSIBTF ? '✓ Mark Complete' : '✓ Accept & Send to Fluent Case'}
               </button>
             </div>
           )}

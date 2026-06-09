@@ -21,7 +21,6 @@ export default function AdminView() {
   const [form, setForm] = useState({
     slug: '', name: '', tagline: '', logo_url: '',
     primary_color: '#1a2e4a', intake_emails: '',
-    from_email: '', from_name: '',
   })
 
   // Edit form
@@ -84,7 +83,7 @@ export default function AdminView() {
     setCreating(false)
     if (res.success) {
       setShowCreate(false)
-      setForm({ slug: '', name: '', tagline: '', logo_url: '', primary_color: '#1a2e4a', intake_emails: '', from_email: '', from_name: '' })
+      setForm({ slug: '', name: '', tagline: '', logo_url: '', primary_color: '#1a2e4a', intake_emails: '' })
       loadFirms(token)
     } else {
       setCreateErr(res.error ?? 'Failed to create firm.')
@@ -100,8 +99,6 @@ export default function AdminView() {
       logo_url:           firm.logo_url            ?? '',
       primary_color:      firm.primary_color       ?? '#1a2e4a',
       intake_emails:      (firm.intake_emails ?? []).join(', '),
-      from_email:         firm.from_email          ?? '',
-      from_name:          firm.from_name           ?? '',
       dashboard_password: '',   // blank = don't change; value = set new password
     })
   }
@@ -252,14 +249,12 @@ export default function AdminView() {
               <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 14 }}>Create new firm</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 {[
-                  ['slug',          'Slug *',        'smithlaw'],
-                  ['name',          'Firm Name *',   'Smith & Associates'],
-                  ['tagline',       'Tagline',       "California Workers' Compensation"],
-                  ['primary_color', 'Brand Color',   '#1a2e4a'],
-                  ['logo_url',      'Logo URL',      'https://...'],
+                  ['slug',          'Slug *',              'smithlaw'],
+                  ['name',          'Firm Name *',         'Smith & Associates'],
+                  ['tagline',       'Tagline',             "California Workers' Compensation"],
+                  ['primary_color', 'Brand Color',         '#1a2e4a'],
+                  ['logo_url',      'Logo URL',            'https://...'],
                   ['intake_emails', 'Notification Emails', 'atty@firm.com, para@firm.com'],
-                  ['from_email',    'From Email',    'intakes@firm.com'],
-                  ['from_name',     'From Name',     'Smith & Associates'],
                 ].map(([key, label, ph]) => (
                   <div key={key}>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
@@ -351,18 +346,14 @@ export default function AdminView() {
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <a href={`/?firm=${firm.slug}`} target="_blank" rel="noreferrer"
+                            <a href={`/firm/${firm.slug}`} target="_blank" rel="noreferrer"
                               style={linkBtn('#eff6ff', '#1d4ed8')}>Intake</a>
-                            <a href={`/?firm=${firm.slug}&view=dashboard`} target="_blank" rel="noreferrer"
+                            <a href={`/firm/${firm.slug}/dashboard`} target="_blank" rel="noreferrer"
                               style={linkBtn('#f0fdf4', '#15803d')}>Dashboard</a>
                             <button
                               onClick={() => isEditing ? setEditingSlug(null) : startEdit(firm)}
                               style={linkBtn(isEditing ? '#f3f4f6' : '#f0f4ff', isEditing ? '#6b7280' : '#4f46e5')}
                             >{isEditing ? 'Cancel' : 'Edit'}</button>
-                            <button
-                              onClick={() => { navigator.clipboard.writeText(firm.settings_token); alert('Settings token copied!') }}
-                              style={linkBtn('#fefce8', '#a16207')}
-                            >Copy Token</button>
                             <button
                               onClick={() => handleDelete(firm.slug)}
                               style={linkBtn('#fef2f2', '#dc2626')}
@@ -384,14 +375,12 @@ export default function AdminView() {
                               </div>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                                 {[
-                                  ['name',               'Firm Name *',          'Smith & Associates'],
-                                  ['tagline',            'Tagline',              "California Workers' Comp"],
-                                  ['logo_url',           'Logo URL',             'https://...'],
-                                  ['primary_color',      'Brand Color',          '#1a2e4a'],
-                                  ['intake_emails',      'Notification Emails',  'a@firm.com, b@firm.com'],
-                                  ['from_email',         'From Email',           'intakes@firm.com'],
-                                  ['from_name',          'From Name',            'Smith & Associates'],
-                                  ['dashboard_password', 'Dashboard Password',   'Leave blank to keep existing'],
+                                  ['name',               'Firm Name *',         'Smith & Associates'],
+                                  ['tagline',            'Tagline',             "California Workers' Comp"],
+                                  ['logo_url',           'Logo URL',            'https://...'],
+                                  ['primary_color',      'Brand Color',         '#1a2e4a'],
+                                  ['intake_emails',      'Notification Emails', 'a@firm.com, b@firm.com'],
+                                  ['dashboard_password', 'Dashboard Password',  'Leave blank to keep existing'],
                                 ].map(([key, label, ph]) => (
                                   <div key={key}>
                                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>

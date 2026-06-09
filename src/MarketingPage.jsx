@@ -90,7 +90,7 @@ export default function MarketingPage() {
   const handleFirmLogin = (e) => {
     e.preventDefault()
     const slug = firmInput.trim().toLowerCase()
-    if (slug) window.location.href = `/?firm=${encodeURIComponent(slug)}&view=dashboard`
+    if (slug) window.location.href = `/firm/${encodeURIComponent(slug)}/dashboard`
   }
 
   return (
@@ -119,7 +119,7 @@ export default function MarketingPage() {
           <span style={{ fontWeight: 900, fontSize: 18, color: NAVY, letterSpacing: '-0.5px' }}>CaseTake</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <a href="/?demo" style={{
+          <a href="/demo" style={{
             color: '#6b7280', fontWeight: 600, fontSize: 13.5, textDecoration: 'none',
             padding: '7px 16px', borderRadius: 8, transition: 'background 0.15s',
           }}
@@ -194,7 +194,7 @@ export default function MarketingPage() {
             No intake calls. No wasted consults.
           </p>
           <div className="hero-in-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/?demo" className="demo-btn" style={{
+            <a href="/demo" className="demo-btn" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: GOLD, color: '#111', fontWeight: 800, fontSize: 16,
               textDecoration: 'none', padding: '16px 36px', borderRadius: 12,
@@ -334,7 +334,7 @@ export default function MarketingPage() {
             report your attorney receives — viability score, red flags, full case summary,
             and the one-click Fluent Case integration.
           </p>
-          <a href="/?demo" className="demo-btn" style={{
+          <a href="/demo" className="demo-btn" style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,
             background: GOLD, color: '#111', fontWeight: 800, fontSize: 18,
             textDecoration: 'none', padding: '18px 44px', borderRadius: 14,
@@ -361,7 +361,7 @@ export default function MarketingPage() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-          <a href="/?demo" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
+          <a href="/demo" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
           <a href="mailto:hello@picnicpeaks.com" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Contact</a>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>

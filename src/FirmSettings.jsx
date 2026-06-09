@@ -123,13 +123,13 @@ export default function FirmSettings({ firmSlug }) {
           }
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a href={`/?firm=${firmSlug}&view=dashboard`} style={{
+          <a href={`/firm/${firmSlug}/dashboard`} style={{
             background: ON.btnBg, color: ON.btnText,
             border: `1px solid ${ON.btnBorder}`,
             borderRadius: 7, padding: '6px 14px', fontSize: 12.5,
             fontWeight: 600, textDecoration: 'none',
           }}>Dashboard</a>
-          <a href={`/?firm=${firmSlug}`} style={{
+          <a href={`/firm/${firmSlug}`} style={{
             background: ON.btnPrimary, color: ON.btnPrimaryText,
             borderRadius: 7, padding: '6px 14px', fontSize: 12.5,
             fontWeight: 700, textDecoration: 'none',
@@ -270,9 +270,9 @@ export default function FirmSettings({ firmSlug }) {
             Your firm URLs
           </div>
           {[
-            ['Intake form',  `https://casetake.picnicpeaks.com/?firm=${firmSlug}`],
-            ['Dashboard',    `https://casetake.picnicpeaks.com/?firm=${firmSlug}&view=dashboard`],
-            ['Settings',     `https://casetake.picnicpeaks.com/?firm=${firmSlug}&view=settings`],
+            ['Intake form',  `https://casetake.picnicpeaks.com/firm/${firmSlug}`],
+            ['Dashboard',    `https://casetake.picnicpeaks.com/firm/${firmSlug}/dashboard`],
+            ['Settings',     `https://casetake.picnicpeaks.com/firm/${firmSlug}/settings`],
           ].map(([label, url]) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: '#6b7280', width: 80, flexShrink: 0 }}>{label}</span>

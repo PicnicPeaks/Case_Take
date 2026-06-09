@@ -1234,7 +1234,7 @@ export default function App({ firm = null, demo = false }) {
             <span>✅ {t[language].intakeComplete}</span>
             {caseId && (
               <a
-                href={firm?.slug ? `?firm=${encodeURIComponent(firm.slug)}&case=${caseId}` : `?case=${caseId}`}
+                href={firm?.slug ? `/firm/${encodeURIComponent(firm.slug)}/case/${caseId}` : `/case/${caseId}`}
                 target="_blank"
                 rel="noreferrer"
                 style={{

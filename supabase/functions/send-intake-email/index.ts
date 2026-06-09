@@ -491,7 +491,7 @@ serve(async (req) => {
     })
   }
 
-  const reportUrl = `${caseBaseUrl}?firm=${encodeURIComponent(firmSlug)}&case=${caseId}`
+  const reportUrl = `${caseBaseUrl}/firm/${encodeURIComponent(firmSlug)}/case/${caseId}`
 
   // ── Load firm config ───────────────────────────────────────────────────
   let firmRecipients: string[] = []

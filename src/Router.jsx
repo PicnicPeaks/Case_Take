@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, Outlet, useParams, useOutletContext } from 'react-router-dom'
 import App from './App.jsx'
 import DashboardView from './DashboardView.jsx'
 import CaseSummaryView from './CaseSummaryView.jsx'
@@ -11,7 +12,7 @@ import { getFirm } from './supabase.js'
 
 const NAVY = '#1a2e4a'
 
-function LoadingScreen({ color = NAVY }) {
+function LoadingScreen() {
   return (
     <div style={{
       minHeight: '100svh', background: '#f3f4f6',
@@ -51,45 +52,85 @@ function FirmNotFound({ slug }) {
   )
 }
 
-export default function Router() {
-  const params   = new URLSearchParams(window.location.search)
-  const firmSlug = params.get('firm')
-  const view     = params.get('view')   // 'dashboard' | 'settings' | null
-  const caseId   = params.get('case')
+// ── Firm loader — resolves :slug, passes firm down via Outlet context ──────────
 
-  const [firm,        setFirm]        = useState(null)
-  const [firmLoading, setFirmLoading] = useState(!!firmSlug)
-  const [firmMissing, setFirmMissing] = useState(false)
+function FirmLoader() {
+  const { slug } = useParams()
+  const [firm,    setFirm]    = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [missing, setMissing] = useState(false)
 
   useEffect(() => {
-    if (!firmSlug) return
-    getFirm(firmSlug)
+    setFirm(null)
+    setLoading(true)
+    setMissing(false)
+    getFirm(slug)
       .then(data => {
-        if (data.error) setFirmMissing(true)
+        if (data.error) setMissing(true)
         else            setFirm(data)
       })
-      .catch(() => setFirmMissing(true))
-      .finally(() => setFirmLoading(false))
-  }, [firmSlug])
+      .catch(() => setMissing(true))
+      .finally(() => setLoading(false))
+  }, [slug])
 
-  // ── Non-firm routes ──────────────────────────────────────────────────────────
-  if (!firmSlug) {
-    if (params.has('admin')) return <AdminView />
-    if (caseId)              return <CaseSummaryView caseId={caseId} />
-    if (params.has('demo'))  return <App demo={true} />
-    if (!params.toString())  return <MarketingPage />
-    return <App />
-  }
+  if (loading) return <LoadingScreen />
+  if (missing) return <FirmNotFound slug={slug} />
+  return <Outlet context={{ firm, slug }} />
+}
 
-  // ── Firm routes ──────────────────────────────────────────────────────────────
-  if (firmLoading) return <LoadingScreen />
-  if (firmMissing) return <FirmNotFound slug={firmSlug} />
+// ── Firm child routes — consume outlet context ─────────────────────────────────
 
-  if (view === 'settings')   return <FirmAuthGate firm={firm} firmSlug={firmSlug}><FirmSettings firmSlug={firmSlug} /></FirmAuthGate>
-  if (view === 'dashboard')  return <FirmAuthGate firm={firm} firmSlug={firmSlug}><DashboardView firm={firm} firmSlug={firmSlug} /></FirmAuthGate>
-  if (caseId)                return <FirmAuthGate firm={firm} firmSlug={firmSlug}><CaseSummaryView caseId={caseId} firmSlug={firmSlug} firm={firm} /></FirmAuthGate>
-  if (params.has('sibtf'))   return <FirmAuthGate firm={firm} firmSlug={firmSlug}><SIBTFView firm={firm} /></FirmAuthGate>
-
-  // Default: firm-branded intake
+function FirmIntake() {
+  const { firm } = useOutletContext()
   return <App firm={firm} />
+}
+
+function FirmDashboard() {
+  const { firm, slug } = useOutletContext()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><DashboardView firm={firm} firmSlug={slug} /></FirmAuthGate>
+}
+
+function FirmSettingsRoute() {
+  const { firm, slug } = useOutletContext()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><FirmSettings firmSlug={slug} /></FirmAuthGate>
+}
+
+function FirmCase() {
+  const { firm, slug } = useOutletContext()
+  const { id } = useParams()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><CaseSummaryView caseId={id} firmSlug={slug} firm={firm} /></FirmAuthGate>
+}
+
+function FirmSIBTF() {
+  const { firm, slug } = useOutletContext()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><SIBTFView firm={firm} /></FirmAuthGate>
+}
+
+// ── Root router ────────────────────────────────────────────────────────────────
+
+export default function Router() {
+  return (
+    <Routes>
+      <Route path="/"      element={<MarketingPage />} />
+      <Route path="/admin" element={<AdminView />} />
+      <Route path="/demo"  element={<App demo={true} />} />
+      <Route path="/case/:id" element={<StandaloneCaseRoute />} />
+
+      <Route path="/firm/:slug" element={<FirmLoader />}>
+        <Route index          element={<FirmIntake />} />
+        <Route path="dashboard" element={<FirmDashboard />} />
+        <Route path="settings"  element={<FirmSettingsRoute />} />
+        <Route path="sibtf"     element={<FirmSIBTF />} />
+        <Route path="case/:id"  element={<FirmCase />} />
+      </Route>
+
+      {/* Catch-all → home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function StandaloneCaseRoute() {
+  const { id } = useParams()
+  return <CaseSummaryView caseId={id} />
 }
