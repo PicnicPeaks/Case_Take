@@ -35,22 +35,31 @@ serve(async (req) => {
     })
   }
 
-  const rows = (data ?? []).map(r => ({
-    id:              r.id,
-    status:          r.status          ?? 'pending',
-    fluent_case_id:  r.fluent_case_id  ?? null,
-    firm_slug:       r.firm_slug       ?? null,
-    created_at:      r.created_at,
-    claimant:        r.claimant,
-    employer:        r.employer,
-    viability_score: r.viability_score,
-    viability_label: r.viability_label,
-    intake_date:     r.summary?.intake_date     ?? null,
-    injury_date:     r.summary?.injury_date     ?? null,
-    body_part:       r.summary?.body_part       ?? null,
-    recommendation:  r.summary?.recommendation  ?? null,
-    red_flags:       Array.isArray(r.summary?.red_flags) ? r.summary.red_flags.length : 0,
-  }))
+  const rows = (data ?? []).map(r => {
+    const isSIBTF = r.summary?.type === 'sibtf'
+    return {
+      id:              r.id,
+      status:          r.status          ?? 'pending',
+      fluent_case_id:  r.fluent_case_id  ?? null,
+      firm_slug:       r.firm_slug       ?? null,
+      created_at:      r.created_at,
+      claimant:        r.claimant,
+      case_type:       isSIBTF ? 'sibtf' : 'workers_comp',
+      // Workers' comp fields
+      employer:        r.employer,
+      viability_score: r.viability_score,
+      viability_label: r.viability_label,
+      intake_date:     r.summary?.intake_date     ?? null,
+      injury_date:     r.summary?.injury_date     ?? null,
+      body_part:       r.summary?.body_part       ?? null,
+      recommendation:  r.summary?.recommendation  ?? null,
+      red_flags:       Array.isArray(r.summary?.red_flags) ? r.summary.red_flags.length : 0,
+      // SIBTF fields
+      doi:             r.summary?.doi             ?? null,
+      claim_number:    r.summary?.claim_number    ?? null,
+      docs_needed:     Array.isArray(r.summary?.documents_needed) ? r.summary.documents_needed.length : 0,
+    }
+  })
 
   return new Response(JSON.stringify(rows), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
