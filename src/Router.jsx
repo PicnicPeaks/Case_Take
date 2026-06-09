@@ -77,7 +77,6 @@ export default function Router() {
     if (params.has('admin')) return <AdminView />
     if (caseId)              return <CaseSummaryView caseId={caseId} />
     if (params.has('demo'))  return <App demo={true} />
-    if (params.has('sibtf')) return <SIBTFView />
     if (!params.toString())  return <MarketingPage />
     return <App />
   }
