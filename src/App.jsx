@@ -1253,12 +1253,12 @@ export default function App({ firm = null, demo = false }) {
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   const resetCase = useCallback(() => {
-    setScreen('landing')
+    setScreen('chat')
     setMessages([])
     conversationRef.current = []
     setShowBanner(false)
     setCaseId(null)
-    setShowPreForm(false)
+    setShowPreForm(true)
     preFormRef.current     = null
     scriptedIdxRef.current = -1
     setError(null)
