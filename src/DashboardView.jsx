@@ -64,8 +64,9 @@ function IntakeRow({ intake, isEven, firmSlug }) {
   const [hovered, setHovered] = useState(false)
   const isSIBTF  = intake.case_type === 'sibtf'
   const ss       = STATUS_STYLE[intake.status] ?? STATUS_STYLE.pending
+  const segment  = isSIBTF ? 'sibtf' : 'intake'
   const caseUrl  = firmSlug
-    ? `/firm/${encodeURIComponent(firmSlug)}/case/${intake.id}`
+    ? `/firm/${encodeURIComponent(firmSlug)}/${segment}/${intake.id}`
     : `/case/${intake.id}`
 
   // Left stripe + viability badge colors

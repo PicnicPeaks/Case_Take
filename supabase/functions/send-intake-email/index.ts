@@ -573,7 +573,9 @@ serve(async (req) => {
     })
   }
 
-  const reportUrl = `${caseBaseUrl}/firm/${encodeURIComponent(firmSlug)}/case/${caseId}`
+  const isSIBTFRecord = s.type === 'sibtf'
+  const caseSegment   = isSIBTFRecord ? 'sibtf' : 'intake'
+  const reportUrl     = `${caseBaseUrl}/firm/${encodeURIComponent(firmSlug)}/${caseSegment}/${caseId}`
 
   // ── Load firm config ───────────────────────────────────────────────────
   let firmRecipients: string[]  = []
@@ -612,10 +614,8 @@ serve(async (req) => {
   }
 
   const results: Record<string, unknown> = {}
-  const isSIBTF = s.type === 'sibtf'
-
   // ── Firm email ─────────────────────────────────────────────────────────────
-  if (isSIBTF) {
+  if (isSIBTFRecord) {
     results.firm = await send(
       resendKey,
       effectiveFrom,
@@ -632,7 +632,7 @@ serve(async (req) => {
       buildFirmHtml(s, reportUrl),
     )
 
-    // Client confirmation only for workers' comp intakes (SIBTF has no client email field)
+    // Client confirmation only for workers' comp (SIBTF has no client email field)
     const clientEmail = String(s.email ?? '').trim()
     if (clientEmail && clientEmail !== 'None provided' && clientEmail.includes('@')) {
       results.client = await send(

@@ -106,6 +106,18 @@ function FirmSIBTF() {
   return <SIBTFView firm={firm} />
 }
 
+function FirmIntakeCase() {
+  const { firm, slug } = useOutletContext()
+  const { id } = useParams()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><CaseSummaryView caseId={id} firmSlug={slug} firm={firm} /></FirmAuthGate>
+}
+
+function FirmSIBTFCase() {
+  const { firm, slug } = useOutletContext()
+  const { id } = useParams()
+  return <FirmAuthGate firm={firm} firmSlug={slug}><CaseSummaryView caseId={id} firmSlug={slug} firm={firm} /></FirmAuthGate>
+}
+
 // ── Root router ────────────────────────────────────────────────────────────────
 
 export default function Router() {
@@ -120,8 +132,9 @@ export default function Router() {
         <Route index          element={<FirmIntake />} />
         <Route path="dashboard" element={<FirmDashboard />} />
         <Route path="settings"  element={<FirmSettingsRoute />} />
-        <Route path="sibtf"     element={<FirmSIBTF />} />
-        <Route path="case/:id"  element={<FirmCase />} />
+        <Route path="sibtf"        element={<FirmSIBTF />} />
+        <Route path="sibtf/:id"    element={<FirmSIBTFCase />} />
+        <Route path="intake/:id"   element={<FirmIntakeCase />} />
       </Route>
 
       {/* Catch-all → home */}
