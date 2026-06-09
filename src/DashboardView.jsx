@@ -5,9 +5,9 @@ import { onBrand } from './colorUtils.js'
 const NAVY       = '#1a2e4a'
 const NAVY_MID   = '#243d5e'
 
-const VIA_COLOR  = { Strong: '#16a34a', Moderate: '#ca8a04', Weak: '#ea580c', Declined: '#dc2626' }
-const VIA_BG     = { Strong: '#f0fdf4', Moderate: '#fefce8', Weak: '#fff7ed',  Declined: '#fef2f2' }
-const VIA_ORDER  = { Strong: 4, Moderate: 3, Weak: 2, Declined: 1 }
+const VIA_COLOR  = { Strong: '#16a34a', Moderate: '#ca8a04', Weak: '#ea580c', Declined: '#dc2626', SIBTF: '#7c3aed' }
+const VIA_BG     = { Strong: '#f0fdf4', Moderate: '#fefce8', Weak: '#fff7ed',  Declined: '#fef2f2', SIBTF: '#f5f3ff' }
+const VIA_ORDER  = { Strong: 4, Moderate: 3, Weak: 2, Declined: 1, SIBTF: 0 }
 
 const STATUS_STYLE = {
   pending:  { bg: '#eff6ff', color: '#1d4ed8', label: 'Pending Review' },

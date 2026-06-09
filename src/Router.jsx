@@ -6,6 +6,7 @@ import FirmSettings from './FirmSettings.jsx'
 import AdminView from './AdminView.jsx'
 import FirmAuthGate from './FirmAuthGate.jsx'
 import MarketingPage from './MarketingPage.jsx'
+import SIBTFView from './SIBTFView.jsx'
 import { getFirm } from './supabase.js'
 
 const NAVY = '#1a2e4a'
@@ -76,6 +77,7 @@ export default function Router() {
     if (params.has('admin')) return <AdminView />
     if (caseId)              return <CaseSummaryView caseId={caseId} />
     if (params.has('demo'))  return <App demo={true} />
+    if (params.has('sibtf')) return <SIBTFView />
     if (!params.toString())  return <MarketingPage />
     return <App />
   }
@@ -84,9 +86,10 @@ export default function Router() {
   if (firmLoading) return <LoadingScreen />
   if (firmMissing) return <FirmNotFound slug={firmSlug} />
 
-  if (view === 'settings')  return <FirmAuthGate firm={firm} firmSlug={firmSlug}><FirmSettings firmSlug={firmSlug} /></FirmAuthGate>
-  if (view === 'dashboard') return <FirmAuthGate firm={firm} firmSlug={firmSlug}><DashboardView firm={firm} firmSlug={firmSlug} /></FirmAuthGate>
-  if (caseId)               return <FirmAuthGate firm={firm} firmSlug={firmSlug}><CaseSummaryView caseId={caseId} firmSlug={firmSlug} firm={firm} /></FirmAuthGate>
+  if (view === 'settings')   return <FirmAuthGate firm={firm} firmSlug={firmSlug}><FirmSettings firmSlug={firmSlug} /></FirmAuthGate>
+  if (view === 'dashboard')  return <FirmAuthGate firm={firm} firmSlug={firmSlug}><DashboardView firm={firm} firmSlug={firmSlug} /></FirmAuthGate>
+  if (caseId)                return <FirmAuthGate firm={firm} firmSlug={firmSlug}><CaseSummaryView caseId={caseId} firmSlug={firmSlug} firm={firm} /></FirmAuthGate>
+  if (params.has('sibtf'))   return <FirmAuthGate firm={firm} firmSlug={firmSlug}><SIBTFView firm={firm} /></FirmAuthGate>
 
   // Default: firm-branded intake
   return <App firm={firm} />
