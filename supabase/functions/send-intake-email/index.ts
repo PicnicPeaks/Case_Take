@@ -232,20 +232,78 @@ function buildFirmHtml(s: Record<string, unknown>, reportUrl?: string | null): s
 
 // ── SIBTF firm email ───────────────────────────────────────────────────────────
 
-function buildSIBTFHtml(s: Record<string, unknown>, reportUrl?: string | null): string {
+function buildSIBTFHtml(
+  s: Record<string, unknown>,
+  reportUrl?: string | null,
+  brandColor?: string | null,
+  logoUrl?: string | null,
+  firmName?: string | null,
+): string {
+  const BRAND    = brandColor || NAVY
   const docsNeeded = Array.isArray(s.documents_needed) ? s.documents_needed as string[] : []
 
+  // Badge + yesno helpers
   const badge = (text: string, ok: boolean) =>
-    `<span style="display:inline-block;background:${ok ? '#f0fdf4' : '#fef2f2'};
-      color:${ok ? '#15803d' : '#dc2626'};border:1px solid ${ok ? '#86efac' : '#fca5a5'};
-      border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:700">${esc(text)}</span>`
+    `<span style="display:inline-block;background:${ok ? '#f0fdf4' : '#fef2f2'};` +
+    `color:${ok ? '#15803d' : '#dc2626'};border:1px solid ${ok ? '#86efac' : '#fca5a5'};` +
+    `border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:700">${esc(text)}</span>`
 
   const yesno = (v: unknown) => {
-    const s = String(v ?? '').toLowerCase()
-    if (s.includes('yes') || s.includes('has it') || s.includes('signed') || s.includes('already')) return badge(String(v ?? ''), true)
-    if (s.includes('no') || s.includes('missing') || s.includes('must sign') || s.includes('needs')) return badge(String(v ?? ''), false)
+    const sv = String(v ?? '').toLowerCase()
+    if (sv.includes('yes') || sv.includes('has it') || sv.includes('signed') || sv.includes('already')) return badge(String(v ?? ''), true)
+    if (sv.includes('no') || sv.includes('missing') || sv.includes('must sign') || sv.includes('needs')) return badge(String(v ?? ''), false)
     return val(v)
   }
+
+  // Field rows — label fixed 180px, subtle border-bottom between rows (matches online)
+  const TD_LABEL = `style="padding:6px 12px 6px 0;font-size:11px;font-weight:700;color:#6b7280;` +
+    `text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;vertical-align:top;` +
+    `border-bottom:1px solid #f3f4f6;width:180px"`
+  const TD_VALUE = `style="padding:6px 0;font-size:13.5px;color:#111827;vertical-align:top;` +
+    `line-height:1.55;border-bottom:1px solid #f3f4f6"`
+
+  const fRow = (label: string, value: unknown) => {
+    const v = String(value ?? '').trim()
+    const display = v && v !== 'N/A' && v !== 'None provided' && v !== 'None reported'
+      ? esc(v)
+      : '<span style="color:#d1d5db">—</span>'
+    return `<tr><td ${TD_LABEL}>${esc(label)}</td><td ${TD_VALUE}>${display}</td></tr>`
+  }
+
+  const fRawRow = (label: string, html: string) =>
+    `<tr><td ${TD_LABEL}>${esc(label)}</td><td ${TD_VALUE}>${html}</td></tr>`
+
+  // Section header — icon + title with 2px bottom border (matches online)
+  const sect = (icon: string, title: string, body: string) => `
+    <div style="margin-bottom:28px">
+      <table cellpadding="0" cellspacing="0" style="border-bottom:2px solid #e5e7eb;width:100%;margin-bottom:14px">
+        <tr>
+          <td style="padding-bottom:7px;font-size:16px;width:24px;vertical-align:middle">${icon}</td>
+          <td style="padding-bottom:7px;padding-left:8px;font-weight:800;font-size:11px;color:${NAVY};
+                     text-transform:uppercase;letter-spacing:0.07em;vertical-align:middle">${esc(title)}</td>
+        </tr>
+      </table>
+      ${body}
+    </div>`
+
+  // Letterhead — logo in white pill if available, else ⚖️ + firm name
+  const letterLogo = logoUrl
+    ? `<table cellpadding="0" cellspacing="0" style="margin-bottom:16px"><tr>
+         <td style="background:white;border-radius:10px;padding:7px 14px">
+           <img src="${logoUrl}" alt="${esc(firmName ?? '')}"
+                style="max-height:38px;max-width:140px;display:block"/>
+         </td></tr></table>`
+    : `<table cellpadding="0" cellspacing="0" style="margin-bottom:16px"><tr>
+         <td style="width:40px;height:40px;background:rgba(255,255,255,0.15);border-radius:10px;
+                    text-align:center;vertical-align:middle;font-size:20px">⚖️</td>
+         <td style="padding-left:10px;vertical-align:middle">
+           <div style="color:white;font-weight:900;font-size:18px;letter-spacing:-0.3px;line-height:1.2">
+             ${esc(firmName ?? 'CaseTake')}
+           </div>
+           <div style="color:rgba(255,255,255,0.65);font-size:11px;margin-top:2px">
+             California Workers' Compensation
+           </div>
+         </td></tr></table>`
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -263,25 +321,22 @@ function buildSIBTFHtml(s: Record<string, unknown>, reportUrl?: string | null): 
               box-shadow:0 2px 20px rgba(0,0,0,0.09)">
 
   <!-- Letterhead -->
-  <tr><td style="background:${NAVY};padding:24px 30px">
-    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);
-                letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px">
-      California Workers' Compensation
-    </div>
-    <div style="font-size:22px;font-weight:900;color:white;letter-spacing:-0.5px">
+  <tr><td style="background:${BRAND};padding:24px 30px">
+    ${letterLogo}
+    <div style="color:white;font-weight:900;font-size:22px;letter-spacing:-0.5px;margin-bottom:5px">
       SIBTF Information Gathering Report
     </div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:5px">
+    <div style="font-size:13px;color:rgba(255,255,255,0.65)">
       ${esc(s.claimant as string)} &nbsp;·&nbsp; DOI: ${esc(s.doi as string)} &nbsp;·&nbsp; ${esc(s.intake_date as string)}
     </div>
   </td></tr>
 
   <!-- Body -->
-  <tr><td style="padding:26px 30px 32px">
+  <tr><td style="padding:28px 30px 32px">
 
     ${docsNeeded.length ? `
-    <!-- Documents needed callout -->
-    <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:16px 20px;margin-bottom:22px">
+    <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;
+                padding:16px 20px;margin-bottom:28px">
       <div style="font-weight:800;font-size:12px;color:#dc2626;text-transform:uppercase;
                   letter-spacing:0.07em;margin-bottom:10px">⚠️ &nbsp;Documents / Signatures Still Needed</div>
       ${docsNeeded.map(d => `
@@ -291,89 +346,88 @@ function buildSIBTFHtml(s: Record<string, unknown>, reportUrl?: string | null): 
         </div>`).join('')}
     </div>` : `
     <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;
-                padding:14px 20px;margin-bottom:22px;font-size:13px;color:#15803d;font-weight:700">
+                padding:14px 20px;margin-bottom:28px;font-size:13px;color:#15803d;font-weight:700">
       ✅ &nbsp;All required documents and signatures appear to be in order.
     </div>`}
 
-    ${section('👤', 'Client Information', `
+    ${sect('👤', 'Client Information', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('Full Name',      s.claimant)}
-        ${row('Phone',          s.phone)}
-        ${row('Date of Injury', s.doi)}
-        ${row('Claim Number',   s.claim_number)}
-        ${row('Intake Date',    s.intake_date)}
-        ${row('Legal Status',   s.legal_status)}
+        ${fRow('Full Name',      s.claimant)}
+        ${fRow('Phone',          s.phone)}
+        ${fRow('Date of Injury', s.doi)}
+        ${fRow('Claim Number',   s.claim_number)}
+        ${fRow('Intake Date',    s.intake_date)}
+        ${fRow('Legal Status',   s.legal_status)}
         ${s.affidavit_re_status_needed === 'Yes'
-          ? `<tr><td colspan="2" style="padding:6px 0">
+          ? `<tr><td colspan="2" style="padding:8px 0">
                <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;
-                           padding:7px 12px;font-size:12.5px;color:#78350f">
+                           padding:7px 12px;font-size:13px;color:#78350f">
                  ⚠️ <strong>Affidavit re Status required</strong> — client is not a legal U.S. resident
                </div></td></tr>`
           : ''}
       </table>`)}
 
-    ${section('🏛️', 'Social Security / SSDI', `
+    ${sect('🏛️', 'Social Security / SSDI', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('SSA Status',                    s.ssa_status)}
+        ${fRow('SSA Status', s.ssa_status)}
         ${s.benefit_verification_letter && s.benefit_verification_letter !== 'N/A'
-          ? rawRow('Benefit Verification Letter',   yesno(s.benefit_verification_letter)) : ''}
+          ? fRawRow('Benefit Verification Letter', yesno(s.benefit_verification_letter)) : ''}
         ${s.ssdi_award_notice && s.ssdi_award_notice !== 'N/A'
-          ? rawRow('SSDI Award Notice',             yesno(s.ssdi_award_notice)) : ''}
+          ? fRawRow('SSDI Award Notice',           yesno(s.ssdi_award_notice)) : ''}
         ${s.ssdi_1099s && s.ssdi_1099s !== 'N/A'
-          ? rawRow('SSDI 1099s',                    yesno(s.ssdi_1099s)) : ''}
+          ? fRawRow('SSDI 1099s',                  yesno(s.ssdi_1099s)) : ''}
         ${s.current_year_rate && s.current_year_rate !== 'N/A'
-          ? rawRow('Current Year Rate (2026+)',      yesno(s.current_year_rate)) : ''}
+          ? fRawRow('Current Year Rate (2026+)',    yesno(s.current_year_rate)) : ''}
         ${s.consent_for_release && s.consent_for_release !== 'N/A'
-          ? rawRow('Consent for Release',           yesno(s.consent_for_release)) : ''}
+          ? fRawRow('Consent for Release',         yesno(s.consent_for_release)) : ''}
       </table>`)}
 
-    ${section('💰', 'Pension', `
+    ${sect('💰', 'Pension', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${rawRow('Pension Release Signed', yesno(s.pension_release_signed))}
-        ${row('Receiving Pension',      s.receiving_pension)}
+        ${fRawRow('Pension Release Signed', yesno(s.pension_release_signed))}
+        ${fRow('Receiving Pension',      s.receiving_pension)}
         ${s.pension_details && s.pension_details !== 'N/A'
-          ? row('Pension Details', s.pension_details) : ''}
+          ? fRow('Pension Details', s.pension_details) : ''}
       </table>`)}
 
-    ${section('🏢', 'CALPERs', `
+    ${sect('🏢', 'CALPERs', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('CALPERs Member',      s.calpers_member)}
+        ${fRow('CALPERs Member', s.calpers_member)}
         ${s.calpers_release_needed === 'Yes'
-          ? rawRow('CALPERS Release', badge('Must sign undated CALPERS Release', false)) : ''}
+          ? fRawRow('CALPERS Release', badge('Must sign undated CALPERS Release', false)) : ''}
       </table>`)}
 
-    ${section('🚗', 'MVA Settlements', `
+    ${sect('🚗', 'MVA Settlements', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('MVA Settlement Received', s.mva_settlement)}
-        ${s.mva_details && s.mva_details !== 'N/A' ? row('Details', s.mva_details) : ''}
+        ${fRow('MVA Settlement Received', s.mva_settlement)}
+        ${s.mva_details && s.mva_details !== 'N/A' ? fRow('Details', s.mva_details) : ''}
       </table>`)}
 
-    ${section('💼', 'Work History (Past 10 Years)', `
+    ${sect('💼', 'Work History (Past 10 Years)', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('Working Past 10 Years', s.work_history_10yr)}
-        ${s.work_years && s.work_years !== 'N/A'       ? row('Years Worked',     s.work_years) : ''}
-        ${s.work_schedule && s.work_schedule !== 'N/A' ? row('Schedule',         s.work_schedule) : ''}
-        ${s.new_work_injuries && s.new_work_injuries !== 'N/A' ? row('New Work Injuries', s.new_work_injuries) : ''}
-        ${s.new_injury_details && s.new_injury_details !== 'N/A' ? row('Injury Details', s.new_injury_details) : ''}
+        ${fRow('Working Past 10 Years', s.work_history_10yr)}
+        ${s.work_years       && s.work_years       !== 'N/A' ? fRow('Years Worked',     s.work_years)       : ''}
+        ${s.work_schedule    && s.work_schedule    !== 'N/A' ? fRow('Schedule',         s.work_schedule)    : ''}
+        ${s.new_work_injuries && s.new_work_injuries !== 'N/A' ? fRow('New Work Injuries', s.new_work_injuries) : ''}
+        ${s.new_injury_details && s.new_injury_details !== 'N/A' ? fRow('Injury Details', s.new_injury_details) : ''}
       </table>`)}
 
-    ${s.notes ? section('📝', 'Notes', `
+    ${s.notes ? sect('📝', 'Notes', `
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
-                  padding:12px 15px;font-size:13px;color:#78350f;line-height:1.7">
+                  padding:13px 16px;font-size:13.5px;color:#78350f;line-height:1.7">
         ${esc(s.notes as string)}
       </div>`) : ''}
 
     ${reportUrl ? `
-    <!-- View Case CTA -->
     <div style="text-align:center;margin-top:28px">
       <a href="${reportUrl}"
-         style="display:inline-block;background:#1a2e4a;color:white;text-decoration:none;
+         style="display:inline-block;background:${BRAND};color:white;text-decoration:none;
                 border-radius:9px;padding:12px 32px;font-size:14px;font-weight:800;
                 letter-spacing:-0.2px">
         Open SIBTF Case Online →
       </a>
       <div style="margin-top:10px;font-size:11px;color:#9ca3af">
-        View the complete SIBTF information gathering report in your browser.
+        View the complete report and mark this case complete in your browser.
       </div>
     </div>` : ''}
 
@@ -522,8 +576,11 @@ serve(async (req) => {
   const reportUrl = `${caseBaseUrl}/firm/${encodeURIComponent(firmSlug)}/case/${caseId}`
 
   // ── Load firm config ───────────────────────────────────────────────────
-  let firmRecipients: string[] = []
-  let effectiveFrom = `CaseTake <${FROM_ADDRESS}>`
+  let firmRecipients: string[]  = []
+  let effectiveFrom             = `CaseTake <${FROM_ADDRESS}>`
+  let firmBrandColor: string | null = null
+  let firmLogoUrl:    string | null = null
+  let firmDisplayName: string | null = null
 
   try {
     const supabase = createClient(
@@ -532,13 +589,16 @@ serve(async (req) => {
     )
     const { data: firm } = await supabase
       .from('firms')
-      .select('intake_emails, name')
+      .select('intake_emails, name, primary_color, logo_url')
       .eq('slug', firmSlug)
       .single()
 
     if (firm) {
       if (firm.intake_emails?.length) firmRecipients = firm.intake_emails
       if (firm.name) effectiveFrom = `${firm.name} <${FROM_ADDRESS}>`
+      if (firm.primary_color) firmBrandColor = firm.primary_color
+      if (firm.logo_url)      firmLogoUrl    = firm.logo_url
+      if (firm.name)          firmDisplayName = firm.name
     }
   } catch (e) {
     console.error('Failed to load firm config:', e)
@@ -561,7 +621,7 @@ serve(async (req) => {
       effectiveFrom,
       firmRecipients,
       `SIBTF Info Gathering: ${s.claimant} — DOI ${s.doi}`,
-      buildSIBTFHtml(s, reportUrl),
+      buildSIBTFHtml(s, reportUrl, firmBrandColor, firmLogoUrl, firmDisplayName),
     )
   } else {
     results.firm = await send(
