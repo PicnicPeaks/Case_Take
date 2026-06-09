@@ -932,118 +932,6 @@ function ScriptedQuestionBubble({ question, language }) {
   )
 }
 
-// ─── LandingScreen ────────────────────────────────────────────────────────────
-
-function LandingScreen({ onStart, language, firm = null }) {
-  const L     = t[language].landing
-  const BRAND = firm?.primary_color ?? NAVY
-  const ON    = onBrand(BRAND)
-
-  return (
-    <div style={{ minHeight: '100svh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
-      {/* Top nav */}
-      <nav style={{
-        background: BRAND, padding: '14px 24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {firm?.logo_url
-            ? <img src={firm.logo_url} alt={firm.name} style={{ maxHeight: 36, maxWidth: 160, objectFit: 'contain' }} />
-            : <>
-                <div style={{
-                  width: 38, height: 38, borderRadius: 9,
-                  background: ON.btnBg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                }}>⚖️</div>
-                <div>
-                  <div style={{ color: ON.text, fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: '-0.3px' }}>
-                    {firm?.name ?? 'CaseTake'}
-                  </div>
-                  <div style={{ color: ON.textMuted, fontSize: 11.5, marginTop: 2 }}>{L.tagline}</div>
-                </div>
-              </>
-          }
-        </div>
-        {firm && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            background: 'white', borderRadius: 20,
-            padding: '4px 10px 4px 8px', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-          }}>
-            <span style={{ fontSize: 13 }}>⚖️</span>
-            <span style={{ color: '#1a2e4a', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.02em' }}>
-              Powered by CaseTake
-            </span>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero */}
-      <div style={{
-        background: `linear-gradient(150deg, ${BRAND} 0%, ${BRAND} 100%)`,
-        padding: 'clamp(40px,8vw,80px) 24px',
-        textAlign: 'center', color: 'white',
-      }}>
-        <div style={{ fontSize: 52, marginBottom: 18, lineHeight: 1 }}>⚖️</div>
-        <h1 style={{
-          margin: '0 0 14px', color: 'white', fontWeight: 900,
-          fontSize: 'clamp(26px, 5vw, 44px)', letterSpacing: '-0.8px', lineHeight: 1.15,
-          whiteSpace: 'pre-line',
-        }}>
-          {L.title}
-        </h1>
-        <p style={{
-          margin: '0 auto 36px', maxWidth: 560, fontSize: 17,
-          opacity: 0.82, lineHeight: 1.65, color: 'white',
-        }}>
-          {L.subtitle}
-        </p>
-
-        <button
-          onClick={onStart}
-          style={{
-            background: 'white', color: NAVY,
-            border: 'none', borderRadius: 10, padding: '14px 38px',
-            fontSize: 16, fontWeight: 800, cursor: 'pointer',
-            boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-            transition: 'transform 0.12s, box-shadow 0.12s',
-            letterSpacing: '-0.2px',
-          }}
-          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
-          onMouseOut={e => (e.currentTarget.style.transform = 'none')}
-        >
-          {L.startBtn}
-        </button>
-      </div>
-
-      {/* Feature cards */}
-      <div style={{ maxWidth: 920, margin: '0 auto', padding: 'clamp(32px,5vw,56px) 24px', width: '100%' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 20,
-        }}>
-          {L.features.map((f, i) => (
-            <div key={i} style={{
-              background: 'white', borderRadius: 13, padding: '26px 22px',
-              boxShadow: '0 2px 14px rgba(0,0,0,0.07)', border: '1px solid #e5e7eb',
-            }}>
-              <div style={{ fontSize: 32, marginBottom: 13 }}>{f.icon}</div>
-              <div style={{ fontWeight: 800, fontSize: 15.5, color: NAVY, marginBottom: 8, letterSpacing: '-0.2px' }}>{f.title}</div>
-              <div style={{ fontSize: 13.5, color: '#6b7280', lineHeight: 1.65 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Copyright */}
-      <div style={{ textAlign: 'center', padding: '20px 24px', color: '#9ca3af', fontSize: 12 }}>
-        © {new Date().getFullYear()} Picnic Peaks LLC. All rights reserved.
-      </div>
-    </div>
-  )
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App({ firm = null, demo = false }) {
@@ -1052,9 +940,6 @@ export default function App({ firm = null, demo = false }) {
   const BRAND_MID = firm?.primary_color ?? NAVY_MID
   const ON        = onBrand(BRAND)
 
-  const showAbout = new URLSearchParams(window.location.search).has('about')
-
-  const [screen,      setScreen]      = useState(showAbout ? 'landing' : 'chat')
   const [messages,    setMessages]    = useState([])   // { role, displayContent }
   const [input,       setInput]       = useState('')
   const [isLoading,   setIsLoading]   = useState(false)
@@ -1064,7 +949,7 @@ export default function App({ firm = null, demo = false }) {
   const [error,       setError]       = useState(null)
 
   const [feedback,    setFeedback]    = useState(() => { try { return JSON.parse(localStorage.getItem('ct_feedback') || '[]') } catch { return [] } })
-  const [showPreForm, setShowPreForm] = useState(!showAbout)  // start intake immediately if not ?about
+  const [showPreForm, setShowPreForm] = useState(true)
   const [language,    setLanguage]    = useState('en')
   const preFormRef    = useRef(null)
   const languageRef   = useRef('en')
@@ -1220,20 +1105,6 @@ export default function App({ firm = null, demo = false }) {
     }
   }, [isLoading, callAPI])
 
-  // ── Start intake ───────────────────────────────────────────────────────────
-  const startIntake = useCallback(() => {
-    setScreen('chat')
-    setMessages([])
-    conversationRef.current = []
-    setShowBanner(false)
-    setCaseId(null)
-    setError(null)
-    setInput('')
-    preFormRef.current     = null
-    scriptedIdxRef.current = -1
-    setShowPreForm(true)
-  }, [])
-
   const submitPreForm = useCallback((formData) => {
     preFormRef.current     = formData
     scriptedIdxRef.current = 0
@@ -1253,7 +1124,6 @@ export default function App({ firm = null, demo = false }) {
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   const resetCase = useCallback(() => {
-    setScreen('chat')
     setMessages([])
     conversationRef.current = []
     setShowBanner(false)
@@ -1271,13 +1141,6 @@ export default function App({ firm = null, demo = false }) {
       e.preventDefault()
       sendMessage(input)
     }
-  }
-
-  // ── Landing screen ─────────────────────────────────────────────────────────
-  if (screen === 'landing') {
-    return (
-      <LandingScreen onStart={startIntake} language={language} firm={firm} />
-    )
   }
 
   // ── Chat screen ────────────────────────────────────────────────────────────
