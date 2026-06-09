@@ -36,6 +36,20 @@ function row(label: string, value: unknown): string {
     </tr>`
 }
 
+// rawRow: use when value is already-rendered HTML (badges, spans) — skips esc()
+function rawRow(label: string, html: string): string {
+  return `
+    <tr>
+      <td style="padding:5px 16px 5px 0;font-size:11px;font-weight:700;color:#6b7280;
+                 text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;vertical-align:top">
+        ${esc(label)}
+      </td>
+      <td style="padding:5px 0;font-size:13px;color:#111827;vertical-align:top;line-height:1.5">
+        ${html}
+      </td>
+    </tr>`
+}
+
 function section(icon: string, title: string, body: string): string {
   return `
     <div style="margin-top:22px">
@@ -302,20 +316,20 @@ function buildSIBTFHtml(s: Record<string, unknown>): string {
       <table cellpadding="0" cellspacing="0" width="100%">
         ${row('SSA Status',                    s.ssa_status)}
         ${s.benefit_verification_letter && s.benefit_verification_letter !== 'N/A'
-          ? row('Benefit Verification Letter',   yesno(s.benefit_verification_letter)) : ''}
+          ? rawRow('Benefit Verification Letter',   yesno(s.benefit_verification_letter)) : ''}
         ${s.ssdi_award_notice && s.ssdi_award_notice !== 'N/A'
-          ? row('SSDI Award Notice',             yesno(s.ssdi_award_notice)) : ''}
+          ? rawRow('SSDI Award Notice',             yesno(s.ssdi_award_notice)) : ''}
         ${s.ssdi_1099s && s.ssdi_1099s !== 'N/A'
-          ? row('SSDI 1099s',                    yesno(s.ssdi_1099s)) : ''}
+          ? rawRow('SSDI 1099s',                    yesno(s.ssdi_1099s)) : ''}
         ${s.current_year_rate && s.current_year_rate !== 'N/A'
-          ? row('Current Year Rate (2026+)',      yesno(s.current_year_rate)) : ''}
+          ? rawRow('Current Year Rate (2026+)',      yesno(s.current_year_rate)) : ''}
         ${s.consent_for_release && s.consent_for_release !== 'N/A'
-          ? row('Consent for Release',           yesno(s.consent_for_release)) : ''}
+          ? rawRow('Consent for Release',           yesno(s.consent_for_release)) : ''}
       </table>`)}
 
     ${section('💰', 'Pension', `
       <table cellpadding="0" cellspacing="0" width="100%">
-        ${row('Pension Release Signed', yesno(s.pension_release_signed))}
+        ${rawRow('Pension Release Signed', yesno(s.pension_release_signed))}
         ${row('Receiving Pension',      s.receiving_pension)}
         ${s.pension_details && s.pension_details !== 'N/A'
           ? row('Pension Details', s.pension_details) : ''}
@@ -325,7 +339,7 @@ function buildSIBTFHtml(s: Record<string, unknown>): string {
       <table cellpadding="0" cellspacing="0" width="100%">
         ${row('CALPERs Member',      s.calpers_member)}
         ${s.calpers_release_needed === 'Yes'
-          ? row('CALPERS Release', badge('Must sign undated CALPERS Release', false)) : ''}
+          ? rawRow('CALPERS Release', badge('Must sign undated CALPERS Release', false)) : ''}
       </table>`)}
 
     ${section('🚗', 'MVA Settlements', `
