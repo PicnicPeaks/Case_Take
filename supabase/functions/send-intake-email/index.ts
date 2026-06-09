@@ -216,6 +216,154 @@ function buildFirmHtml(s: Record<string, unknown>, reportUrl?: string | null): s
 </html>`
 }
 
+// ── SIBTF firm email ───────────────────────────────────────────────────────────
+
+function buildSIBTFHtml(s: Record<string, unknown>): string {
+  const docsNeeded = Array.isArray(s.documents_needed) ? s.documents_needed as string[] : []
+
+  const badge = (text: string, ok: boolean) =>
+    `<span style="display:inline-block;background:${ok ? '#f0fdf4' : '#fef2f2'};
+      color:${ok ? '#15803d' : '#dc2626'};border:1px solid ${ok ? '#86efac' : '#fca5a5'};
+      border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:700">${esc(text)}</span>`
+
+  const yesno = (v: unknown) => {
+    const s = String(v ?? '').toLowerCase()
+    if (s.includes('yes') || s.includes('has it') || s.includes('signed') || s.includes('already')) return badge(String(v ?? ''), true)
+    if (s.includes('no') || s.includes('missing') || s.includes('must sign') || s.includes('needs')) return badge(String(v ?? ''), false)
+    return val(v)
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;
+             font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f3f4f6;padding:28px 0">
+<tr><td align="center">
+<table width="640" cellpadding="0" cellspacing="0"
+       style="background:white;border-radius:12px;overflow:hidden;
+              box-shadow:0 2px 20px rgba(0,0,0,0.09)">
+
+  <!-- Letterhead -->
+  <tr><td style="background:${NAVY};padding:24px 30px">
+    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);
+                letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px">
+      California Workers' Compensation
+    </div>
+    <div style="font-size:22px;font-weight:900;color:white;letter-spacing:-0.5px">
+      SIBTF Information Gathering Report
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:5px">
+      ${esc(s.claimant as string)} &nbsp;·&nbsp; DOI: ${esc(s.doi as string)} &nbsp;·&nbsp; ${esc(s.intake_date as string)}
+    </div>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:26px 30px 32px">
+
+    ${docsNeeded.length ? `
+    <!-- Documents needed callout -->
+    <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:16px 20px;margin-bottom:22px">
+      <div style="font-weight:800;font-size:12px;color:#dc2626;text-transform:uppercase;
+                  letter-spacing:0.07em;margin-bottom:10px">⚠️ &nbsp;Documents / Signatures Still Needed</div>
+      ${docsNeeded.map(d => `
+        <div style="background:white;border:1px solid #fecaca;border-radius:6px;
+                    padding:6px 12px;font-size:13px;color:#9a3412;margin-bottom:5px">
+          • ${esc(d)}
+        </div>`).join('')}
+    </div>` : `
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;
+                padding:14px 20px;margin-bottom:22px;font-size:13px;color:#15803d;font-weight:700">
+      ✅ &nbsp;All required documents and signatures appear to be in order.
+    </div>`}
+
+    ${section('👤', 'Client Information', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('Full Name',      s.claimant)}
+        ${row('Phone',          s.phone)}
+        ${row('Date of Injury', s.doi)}
+        ${row('Claim Number',   s.claim_number)}
+        ${row('Intake Date',    s.intake_date)}
+        ${row('Legal Status',   s.legal_status)}
+        ${s.affidavit_re_status_needed === 'Yes'
+          ? `<tr><td colspan="2" style="padding:6px 0">
+               <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;
+                           padding:7px 12px;font-size:12.5px;color:#78350f">
+                 ⚠️ <strong>Affidavit re Status required</strong> — client is not a legal U.S. resident
+               </div></td></tr>`
+          : ''}
+      </table>`)}
+
+    ${section('🏛️', 'Social Security / SSDI', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('SSA Status',                    s.ssa_status)}
+        ${s.benefit_verification_letter && s.benefit_verification_letter !== 'N/A'
+          ? row('Benefit Verification Letter',   yesno(s.benefit_verification_letter)) : ''}
+        ${s.ssdi_award_notice && s.ssdi_award_notice !== 'N/A'
+          ? row('SSDI Award Notice',             yesno(s.ssdi_award_notice)) : ''}
+        ${s.ssdi_1099s && s.ssdi_1099s !== 'N/A'
+          ? row('SSDI 1099s',                    yesno(s.ssdi_1099s)) : ''}
+        ${s.current_year_rate && s.current_year_rate !== 'N/A'
+          ? row('Current Year Rate (2026+)',      yesno(s.current_year_rate)) : ''}
+        ${s.consent_for_release && s.consent_for_release !== 'N/A'
+          ? row('Consent for Release',           yesno(s.consent_for_release)) : ''}
+      </table>`)}
+
+    ${section('💰', 'Pension', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('Pension Release Signed', yesno(s.pension_release_signed))}
+        ${row('Receiving Pension',      s.receiving_pension)}
+        ${s.pension_details && s.pension_details !== 'N/A'
+          ? row('Pension Details', s.pension_details) : ''}
+      </table>`)}
+
+    ${section('🏢', 'CALPERs', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('CALPERs Member',      s.calpers_member)}
+        ${s.calpers_release_needed === 'Yes'
+          ? row('CALPERS Release', badge('Must sign undated CALPERS Release', false)) : ''}
+      </table>`)}
+
+    ${section('🚗', 'MVA Settlements', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('MVA Settlement Received', s.mva_settlement)}
+        ${s.mva_details && s.mva_details !== 'N/A' ? row('Details', s.mva_details) : ''}
+      </table>`)}
+
+    ${section('💼', 'Work History (Past 10 Years)', `
+      <table cellpadding="0" cellspacing="0" width="100%">
+        ${row('Working Past 10 Years', s.work_history_10yr)}
+        ${s.work_years && s.work_years !== 'N/A'       ? row('Years Worked',     s.work_years) : ''}
+        ${s.work_schedule && s.work_schedule !== 'N/A' ? row('Schedule',         s.work_schedule) : ''}
+        ${s.new_work_injuries && s.new_work_injuries !== 'N/A' ? row('New Work Injuries', s.new_work_injuries) : ''}
+        ${s.new_injury_details && s.new_injury_details !== 'N/A' ? row('Injury Details', s.new_injury_details) : ''}
+      </table>`)}
+
+    ${s.notes ? section('📝', 'Notes', `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+                  padding:12px 15px;font-size:13px;color:#78350f;line-height:1.7">
+        ${esc(s.notes as string)}
+      </div>`) : ''}
+
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="border-top:1px solid #e5e7eb;padding:12px 30px;
+                 font-size:11px;color:#9ca3af">
+    Confidential — Attorney Work Product &nbsp;·&nbsp; For Internal Use Only &nbsp;·&nbsp; CaseTake SIBTF &nbsp;·&nbsp; © ${new Date().getFullYear()} Picnic Peaks LLC
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
 // ── Client confirmation email ──────────────────────────────────────────────────
 
 function buildClientHtml(s: Record<string, unknown>): string {
@@ -369,26 +517,37 @@ serve(async (req) => {
   }
 
   const results: Record<string, unknown> = {}
+  const isSIBTF = s.type === 'sibtf'
 
-  // ── Firm email (always) ────────────────────────────────────────────────────
-  results.firm = await send(
-    resendKey,
-    effectiveFrom,
-    firmRecipients,
-    `New Intake: ${s.claimant} — ${s.viability_label} (${s.viability_score})`,
-    buildFirmHtml(s, reportUrl),
-  )
-
-  // ── Client email (if provided) ──
-  const clientEmail = String(s.email ?? '').trim()
-  if (clientEmail && clientEmail !== 'None provided' && clientEmail.includes('@')) {
-    results.client = await send(
+  // ── Firm email ─────────────────────────────────────────────────────────────
+  if (isSIBTF) {
+    results.firm = await send(
       resendKey,
       effectiveFrom,
-      clientEmail,
-      "Your Workers' Comp Intake Has Been Received",
-      buildClientHtml(s),
+      firmRecipients,
+      `SIBTF Info Gathering: ${s.claimant} — DOI ${s.doi}`,
+      buildSIBTFHtml(s),
     )
+  } else {
+    results.firm = await send(
+      resendKey,
+      effectiveFrom,
+      firmRecipients,
+      `New Intake: ${s.claimant} — ${s.viability_label} (${s.viability_score})`,
+      buildFirmHtml(s, reportUrl),
+    )
+
+    // Client confirmation only for workers' comp intakes (SIBTF has no client email field)
+    const clientEmail = String(s.email ?? '').trim()
+    if (clientEmail && clientEmail !== 'None provided' && clientEmail.includes('@')) {
+      results.client = await send(
+        resendKey,
+        effectiveFrom,
+        clientEmail,
+        "Your Workers' Comp Intake Has Been Received",
+        buildClientHtml(s),
+      )
+    }
   }
 
   console.log('Email results:', JSON.stringify(results))
