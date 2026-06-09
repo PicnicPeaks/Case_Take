@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { getCaseSummary, acceptCase, rejectCase } from './supabase.js'
 import { onBrand } from './colorUtils.js'
 
@@ -279,8 +280,11 @@ function StatusBanner({ status, fluentCaseId }) {
 // ── Main view ──────────────────────────────────────────────────────────────────
 
 export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }) {
-  const BRAND = firm?.primary_color ?? NAVY
-  const ON    = onBrand(BRAND)
+  const BRAND    = firm?.primary_color ?? NAVY
+  const ON       = onBrand(BRAND)
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
   const [caseData,   setCaseData]   = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [loadError,  setLoadError]  = useState(null)
@@ -291,8 +295,17 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
   useEffect(() => {
     getCaseSummary(caseId, firmSlug)
       .then(data => {
-        if (data.error) setLoadError(data.error)
-        else            setCaseData(data)
+        if (data.error) { setLoadError(data.error); return }
+        // Auto-correct URL if type doesn't match route segment (e.g. /intake/:id for a SIBTF case)
+        if (firmSlug) {
+          const actualSegment = data.summary?.type === 'sibtf' ? 'sibtf' : 'intake'
+          const urlSegment    = pathname.includes('/sibtf/') ? 'sibtf' : 'intake'
+          if (actualSegment !== urlSegment) {
+            navigate(`/firm/${encodeURIComponent(firmSlug)}/${actualSegment}/${caseId}`, { replace: true })
+            return
+          }
+        }
+        setCaseData(data)
       })
       .catch(e => setLoadError(e.message))
       .finally(() => setLoading(false))
