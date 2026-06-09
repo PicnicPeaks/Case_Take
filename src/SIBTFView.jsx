@@ -484,7 +484,7 @@ function SIBTFIntroCard({ onBegin, firm }) {
           💡 Have any relevant documents handy if you can — it will help us give you the most accurate checklist.
         </div>
         <button onClick={onBegin} style={{
-          background: BRAND, color: ON.btnPrimaryText === BRAND ? '#111827' : 'white',
+          background: BRAND, color: ON.text,
           border: 'none', borderRadius: 9, padding: '11px 28px',
           fontSize: 14, fontWeight: 700, cursor: 'pointer',
           boxShadow: `0 3px 12px ${BRAND}44`,
