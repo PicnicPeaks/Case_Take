@@ -232,7 +232,7 @@ function buildFirmHtml(s: Record<string, unknown>, reportUrl?: string | null): s
 
 // ── SIBTF firm email ───────────────────────────────────────────────────────────
 
-function buildSIBTFHtml(s: Record<string, unknown>): string {
+function buildSIBTFHtml(s: Record<string, unknown>, reportUrl?: string | null): string {
   const docsNeeded = Array.isArray(s.documents_needed) ? s.documents_needed as string[] : []
 
   const badge = (text: string, ok: boolean) =>
@@ -362,6 +362,20 @@ function buildSIBTFHtml(s: Record<string, unknown>): string {
                   padding:12px 15px;font-size:13px;color:#78350f;line-height:1.7">
         ${esc(s.notes as string)}
       </div>`) : ''}
+
+    ${reportUrl ? `
+    <!-- View Case CTA -->
+    <div style="text-align:center;margin-top:28px">
+      <a href="${reportUrl}"
+         style="display:inline-block;background:#1a2e4a;color:white;text-decoration:none;
+                border-radius:9px;padding:12px 32px;font-size:14px;font-weight:800;
+                letter-spacing:-0.2px">
+        Open SIBTF Case Online →
+      </a>
+      <div style="margin-top:10px;font-size:11px;color:#9ca3af">
+        View the complete SIBTF information gathering report in your browser.
+      </div>
+    </div>` : ''}
 
   </td></tr>
 
@@ -547,7 +561,7 @@ serve(async (req) => {
       effectiveFrom,
       firmRecipients,
       `SIBTF Info Gathering: ${s.claimant} — DOI ${s.doi}`,
-      buildSIBTFHtml(s),
+      buildSIBTFHtml(s, reportUrl),
     )
   } else {
     results.firm = await send(
