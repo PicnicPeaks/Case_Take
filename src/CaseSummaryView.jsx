@@ -299,8 +299,9 @@ export default function CaseSummaryView({ caseId, firmSlug = null, firm = null }
         // Auto-correct URL if type doesn't match route segment (e.g. /intake/:id for a SIBTF case)
         if (firmSlug) {
           const actualSegment = data.summary?.type === 'sibtf' ? 'sibtf' : 'intake'
+          const isLegacyUrl   = pathname.includes('/case/')
           const urlSegment    = pathname.includes('/sibtf/') ? 'sibtf' : 'intake'
-          if (actualSegment !== urlSegment) {
+          if (isLegacyUrl || actualSegment !== urlSegment) {
             navigate(`/firm/${encodeURIComponent(firmSlug)}/${actualSegment}/${caseId}`, { replace: true })
             return
           }

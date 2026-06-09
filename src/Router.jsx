@@ -135,6 +135,7 @@ export default function Router() {
         <Route path="sibtf"        element={<FirmSIBTF />} />
         <Route path="sibtf/:id"    element={<FirmSIBTFCase />} />
         <Route path="intake/:id"   element={<FirmIntakeCase />} />
+        <Route path="case/:id"     element={<FirmCase />} />  {/* legacy — auto-redirects to /intake/:id or /sibtf/:id */}
       </Route>
 
       {/* Catch-all → home */}
