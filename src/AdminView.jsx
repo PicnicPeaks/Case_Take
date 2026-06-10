@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { adminListFirms, adminCreateFirm, adminUpdateFirm, adminDeleteFirm } from './supabase.js'
+import { adminListFirms, adminCreateFirm, adminUpdateFirm, adminDeleteFirm, adminListProspects, adminUpdateProspect } from './supabase.js'
 
 const NAVY = '#1a2e4a'
 
@@ -10,9 +10,15 @@ export default function AdminView() {
   const [authed,   setAuthed]   = useState(false)
   const [tokenErr, setTokenErr] = useState('')
 
+  const [adminTab,   setAdminTab]   = useState('firms')  // 'firms' | 'prospects'
+
   const [firms,    setFirms]    = useState([])
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState(null)
+
+  // Prospects
+  const [prospects,      setProspects]      = useState([])
+  const [prospectsLoading, setProspectsLoading] = useState(false)
 
   // Create form
   const [showCreate, setShowCreate] = useState(false)
@@ -28,6 +34,13 @@ export default function AdminView() {
   const [editForm,    setEditForm]    = useState({})
   const [saving,      setSaving]      = useState(false)
   const [saveErr,     setSaveErr]     = useState('')
+
+  const loadProspects = async (tok) => {
+    setProspectsLoading(true)
+    const data = await adminListProspects(tok)
+    setProspectsLoading(false)
+    if (Array.isArray(data)) setProspects(data)
+  }
 
   const loadFirms = async (tok) => {
     setLoading(true)
@@ -57,6 +70,7 @@ export default function AdminView() {
       sessionStorage.setItem('ct_admin_token', token.trim())
       setAuthed(true)
       setFirms(Array.isArray(data) ? data : [])
+      loadProspects(token.trim())
     }
   }
 
@@ -65,7 +79,7 @@ export default function AdminView() {
     if (saved) {
       setToken(saved)
       adminListFirms(saved).then(data => {
-        if (Array.isArray(data)) { setAuthed(true); setFirms(data) }
+        if (Array.isArray(data)) { setAuthed(true); setFirms(data); loadProspects(saved) }
         else sessionStorage.removeItem('ct_admin_token')
       })
     }
@@ -197,7 +211,7 @@ export default function AdminView() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{firms.length} firms</span>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{firms.length} firms · {prospects.length} prospects</span>
           <button
             onClick={() => { sessionStorage.removeItem('ct_admin_token'); setAuthed(false) }}
             style={{
@@ -209,8 +223,32 @@ export default function AdminView() {
         </div>
       </header>
 
+      {/* Tab bar */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', gap: 4 }}>
+        {[['firms', '🏢 Firms'], ['prospects', '📬 Prospects']].map(([val, label]) => (
+          <button key={val} onClick={() => setAdminTab(val)} style={{
+            background: 'none', border: 'none', borderBottom: adminTab === val ? `2.5px solid ${NAVY}` : '2.5px solid transparent',
+            color: adminTab === val ? NAVY : '#6b7280', fontWeight: adminTab === val ? 700 : 500,
+            fontSize: 13.5, padding: '12px 16px', cursor: 'pointer', transition: 'all 0.12s',
+          }}>{label}{val === 'prospects' && prospects.filter(p => p.status === 'new').length > 0 && (
+            <span style={{ marginLeft: 6, background: '#dc2626', color: 'white', borderRadius: 20, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+              {prospects.filter(p => p.status === 'new').length}
+            </span>
+          )}</button>
+        ))}
+      </div>
+
       <div style={{ padding: '28px 24px 60px' }}>
 
+        {adminTab === 'prospects' && (
+          <ProspectsPanel prospects={prospects} loading={prospectsLoading} token={token}
+            onUpdate={async (id, fields) => {
+              await adminUpdateProspect(token, id, fields)
+              loadProspects(token)
+            }} />
+        )}
+
+        {adminTab === 'firms' && (<>
         {error && (
           <div style={{
             background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
@@ -454,8 +492,124 @@ export default function AdminView() {
             </table>
           )}
         </div>
+        </>)}
 
       </div>
+    </div>
+  )
+}
+
+// ── Prospects panel ────────────────────────────────────────────────────────────
+
+const STATUS_OPTIONS = ['new', 'contacted', 'demo_scheduled', 'converted', 'declined']
+const STATUS_STYLE = {
+  new:            { bg: '#eff6ff', color: '#1d4ed8' },
+  contacted:      { bg: '#fefce8', color: '#a16207' },
+  demo_scheduled: { bg: '#f0fdf4', color: '#15803d' },
+  converted:      { bg: '#f0fdf4', color: '#15803d' },
+  declined:       { bg: '#f3f4f6', color: '#6b7280' },
+}
+
+const INTEREST_LABEL = {
+  workers_comp: "W/C",
+  sibtf:        'SIBTF',
+  both:         'Both',
+  general:      'General',
+}
+
+function ProspectsPanel({ prospects, loading, onUpdate }) {
+  const [expandedId, setExpandedId] = useState(null)
+
+  function fmtDate(iso) {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: '#9ca3af' }}>Loading prospects…</div>
+
+  if (!prospects.length) return (
+    <div style={{ padding: '52px 0', textAlign: 'center', color: '#9ca3af' }}>
+      <div style={{ fontSize: 32, marginBottom: 10 }}>📬</div>
+      <div style={{ fontWeight: 700, fontSize: 15, color: '#374151' }}>No prospects yet</div>
+      <div style={{ fontSize: 13, marginTop: 4 }}>Inquiries from the marketing page will appear here.</div>
+    </div>
+  )
+
+  return (
+    <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#fafafa', borderBottom: '2px solid #f0f0f0' }}>
+            {[['Name / Firm', '200px'], ['Email', '200px'], ['Interest', '100px'], ['Source', '100px'], ['Status', '160px'], ['Received', '110px']].map(([h, w]) => (
+              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', width: w }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {prospects.map((p, i) => {
+            const ss = STATUS_STYLE[p.status] ?? STATUS_STYLE.new
+            const isExpanded = expandedId === p.id
+            return (
+              <>
+                <tr key={p.id}
+                  onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                  style={{ background: i % 2 === 0 ? 'white' : '#fafafa', cursor: 'pointer', borderBottom: isExpanded ? 'none' : '1px solid #f0f0f0' }}>
+                  <td style={{ padding: '12px 14px' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: '#111827' }}>{p.name}</div>
+                    {p.firm_name && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 2 }}>{p.firm_name}</div>}
+                  </td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <a href={`mailto:${p.email}`} onClick={e => e.stopPropagation()} style={{ fontSize: 13, color: NAVY, textDecoration: 'none', fontWeight: 500 }}>{p.email}</a>
+                    {p.phone && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 2 }}>{p.phone}</div>}
+                  </td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <span style={{ background: '#f0f4ff', color: NAVY, borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
+                      {INTEREST_LABEL[p.interest] ?? p.interest}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 14px', fontSize: 12.5, color: '#6b7280' }}>{p.source ?? '—'}</td>
+                  <td style={{ padding: '12px 14px' }} onClick={e => e.stopPropagation()}>
+                    <select
+                      value={p.status}
+                      onChange={e => onUpdate(p.id, { status: e.target.value })}
+                      style={{
+                        background: ss.bg, color: ss.color, border: `1px solid ${ss.color}30`,
+                        borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', outline: 'none',
+                      }}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px 14px', fontSize: 12.5, color: '#6b7280' }}>{fmtDate(p.created_at)}</td>
+                </tr>
+                {isExpanded && (
+                  <tr key={`${p.id}-detail`} style={{ background: '#f8fafc', borderBottom: '1px solid #f0f0f0' }}>
+                    <td colSpan={6} style={{ padding: '14px 20px' }}>
+                      {p.message ? (
+                        <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7, marginBottom: 10 }}>
+                          <span style={{ fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', fontSize: 10.5, letterSpacing: '0.05em' }}>Message: </span>
+                          {p.message}
+                        </div>
+                      ) : <div style={{ fontSize: 12.5, color: '#9ca3af', marginBottom: 10 }}>No message provided.</div>}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <a href={`mailto:${p.email}`} style={{ background: NAVY, color: 'white', borderRadius: 7, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+                          Reply →
+                        </a>
+                        {p.phone && (
+                          <a href={`tel:${p.phone}`} style={{ background: '#f3f4f6', color: '#374151', borderRadius: 7, padding: '6px 14px', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>
+                            Call {p.phone}
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

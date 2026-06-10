@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { submitProspect } from './supabase.js'
 
 const NAVY    = '#1a2e4a'
 const GOLD    = '#f59e0b'
@@ -82,11 +83,204 @@ function CheckItem({ children, status = 'done' }) {
   )
 }
 
+// ── Contact modal ──────────────────────────────────────────────────────────────
+
+const INTEREST_OPTIONS = [
+  { value: 'workers_comp', label: "Workers' Comp Intake",        desc: 'AI intake screening + Fluent Case sync' },
+  { value: 'sibtf',        label: 'SIBTF Information Gathering', desc: 'Structured document checklist + attorney report' },
+  { value: 'both',         label: 'Both',                        desc: "Full suite for your firm" },
+]
+
+function ContactModal({ defaultInterest = 'both', source = '', onClose }) {
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', firm_name: '',
+    interest: defaultInterest, message: '',
+  })
+  const [busy,    setBusy]    = useState(false)
+  const [done,    setDone]    = useState(false)
+  const [err,     setErr]     = useState(null)
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setBusy(true); setErr(null)
+    try {
+      const res = await submitProspect({ ...form, source })
+      if (res.error) throw new Error(res.error)
+      setDone(true)
+    } catch (e) {
+      setErr(e.message ?? 'Something went wrong — please email hello@picnicpeaks.com')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const INPUT = {
+    width: '100%', boxSizing: 'border-box',
+    border: '1.5px solid #e5e7eb', borderRadius: 9,
+    padding: '10px 14px', fontSize: 14, fontFamily: 'inherit',
+    color: '#111827', outline: 'none', transition: 'border-color 0.15s',
+  }
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '20px',
+        animation: 'fadeIn 0.18s ease',
+      }}
+    >
+      <div style={{
+        background: 'white', borderRadius: 18, width: '100%', maxWidth: 500,
+        boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+        animation: 'scaleIn 0.2s ease',
+        maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        {/* Header */}
+        <div style={{ background: NAVY, padding: '22px 26px', borderRadius: '18px 18px 0 0', position: 'relative' }}>
+          <button onClick={onClose} style={{
+            position: 'absolute', top: 14, right: 16,
+            background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%',
+            width: 30, height: 30, color: 'white', fontSize: 16, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>✕</button>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>CaseTake</div>
+          <div style={{ color: 'white', fontWeight: 900, fontSize: 20, letterSpacing: '-0.4px' }}>Get a demo for your firm</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 4 }}>We'll reach out within one business day.</div>
+        </div>
+
+        <div style={{ padding: '24px 26px 28px' }}>
+          {done ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: NAVY, marginBottom: 8 }}>You're on our list!</div>
+              <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.65, marginBottom: 24 }}>
+                We'll be in touch within one business day to set up a demo tailored to your firm.
+              </div>
+              <button onClick={onClose} style={{
+                background: NAVY, color: 'white', border: 'none',
+                borderRadius: 9, padding: '11px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>Close</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Interest selector */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>
+                  I'm interested in
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {INTEREST_OPTIONS.map(opt => (
+                    <label key={opt.value} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      border: `1.5px solid ${form.interest === opt.value ? NAVY : '#e5e7eb'}`,
+                      borderRadius: 9, padding: '10px 14px', cursor: 'pointer',
+                      background: form.interest === opt.value ? '#f0f4ff' : 'white',
+                      transition: 'all 0.12s',
+                    }}>
+                      <input
+                        type="radio" name="interest" value={opt.value}
+                        checked={form.interest === opt.value}
+                        onChange={() => set('interest', opt.value)}
+                        style={{ accentColor: NAVY, width: 16, height: 16, flexShrink: 0 }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: '#111827' }}>{opt.label}</div>
+                        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name + Firm */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Name *</label>
+                  <input required value={form.name} onChange={e => set('name', e.target.value)}
+                    placeholder="Jane Smith" style={INPUT}
+                    onFocus={e => (e.target.style.borderColor = NAVY)}
+                    onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Firm Name</label>
+                  <input value={form.firm_name} onChange={e => set('firm_name', e.target.value)}
+                    placeholder="Smith & Associates" style={INPUT}
+                    onFocus={e => (e.target.style.borderColor = NAVY)}
+                    onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+              </div>
+
+              {/* Email + Phone */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Email *</label>
+                  <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                    placeholder="jane@smithlaw.com" style={INPUT}
+                    onFocus={e => (e.target.style.borderColor = NAVY)}
+                    onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Phone</label>
+                  <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+                    placeholder="(213) 555-0100" style={INPUT}
+                    onFocus={e => (e.target.style.borderColor = NAVY)}
+                    onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+              </div>
+
+              {/* Message */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>
+                  Anything you'd like us to know? <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
+                </label>
+                <textarea value={form.message} onChange={e => set('message', e.target.value)}
+                  rows={3} placeholder="How many intakes per month? Specific questions?"
+                  style={{ ...INPUT, resize: 'vertical', minHeight: 72 }}
+                  onFocus={e => (e.target.style.borderColor = NAVY)}
+                  onBlur={e  => (e.target.style.borderColor = '#e5e7eb')} />
+              </div>
+
+              {err && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>
+                  ⚠️ {err}
+                </div>
+              )}
+
+              <button type="submit" disabled={busy} style={{
+                background: busy ? '#9ca3af' : NAVY, color: 'white', border: 'none',
+                borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 800,
+                cursor: busy ? 'not-allowed' : 'pointer', letterSpacing: '-0.2px',
+                marginTop: 2,
+              }}>
+                {busy ? 'Sending…' : 'Request a Demo →'}
+              </button>
+
+              <p style={{ margin: 0, fontSize: 11.5, color: '#9ca3af', textAlign: 'center' }}>
+                No sales pressure. We'll set up a 20-min walkthrough on your schedule.
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 export default function MarketingPage() {
-  const [showLogin, setShowLogin] = useState(false)
-  const [firmInput, setFirmInput] = useState('')
+  const [showLogin,  setShowLogin]  = useState(false)
+  const [firmInput,  setFirmInput]  = useState('')
+  const [modal,      setModal]      = useState(null) // null | { interest, source }
+
+  const openModal = (interest = 'both', source = '') => setModal({ interest, source })
+  const closeModal = () => setModal(null)
 
   const handleFirmLogin = (e) => {
     e.preventDefault()
@@ -98,7 +292,9 @@ export default function MarketingPage() {
     <div style={{ fontFamily: "system-ui,-apple-system,'Segoe UI',sans-serif", background: 'white', color: '#111827' }}>
       <style>{`
         * { box-sizing: border-box; }
-        @keyframes floatUp { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes floatUp  { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes fadeIn   { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes scaleIn  { from { opacity: 0; transform: scale(0.95) } to { opacity: 1; transform: scale(1) } }
         .hero-in   { animation: floatUp 0.7s ease both; }
         .hero-in-2 { animation: floatUp 0.7s 0.15s ease both; }
         .hero-in-3 { animation: floatUp 0.7s 0.3s ease both; }
@@ -106,6 +302,14 @@ export default function MarketingPage() {
         .demo-btn:hover { background: ${GOLD2} !important; transform: scale(1.03); }
         a { color: inherit; }
       `}</style>
+
+      {modal && (
+        <ContactModal
+          defaultInterest={modal.interest}
+          source={modal.source}
+          onClose={closeModal}
+        />
+      )}
 
       {/* ── Nav ── */}
       <nav style={{
@@ -234,14 +438,14 @@ export default function MarketingPage() {
             }}>
               ▶ Try the Demo
             </a>
-            <a href="mailto:hello@picnicpeaks.com" style={{
+            <button onClick={() => openModal('both', 'hero')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 700, fontSize: 15,
-              textDecoration: 'none', padding: '16px 32px', borderRadius: 12,
+              padding: '16px 32px', borderRadius: 12, cursor: 'pointer',
               border: '1.5px solid rgba(255,255,255,0.25)',
             }}>
               Get a demo for your firm →
-            </a>
+            </button>
           </div>
         </div>
       </section>
@@ -353,14 +557,14 @@ export default function MarketingPage() {
               </p>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <a href="mailto:hello@picnicpeaks.com" style={{
+                <button onClick={() => openModal('sibtf', 'sibtf-section')} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   background: PURPLE, color: 'white', fontWeight: 800, fontSize: 15,
-                  textDecoration: 'none', padding: '14px 30px', borderRadius: 11,
+                  border: 'none', padding: '14px 30px', borderRadius: 11, cursor: 'pointer',
                   boxShadow: `0 4px 20px ${PURPLE}88`,
                 }}>
                   Get SIBTF for your firm →
-                </a>
+                </button>
               </div>
             </div>
 
@@ -502,7 +706,7 @@ export default function MarketingPage() {
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           <a href="/demo"  style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
           <a href="#sibtf" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>SIBTF Intake</a>
-          <a href="mailto:hello@picnicpeaks.com" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Contact</a>
+          <button onClick={() => openModal('both', 'footer')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 13, cursor: 'pointer', fontWeight: 500, padding: 0 }}>Contact</button>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
           © {new Date().getFullYear()} Picnic Peaks LLC

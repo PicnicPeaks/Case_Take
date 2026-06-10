@@ -120,3 +120,19 @@ export async function adminUpdateFirm(adminToken, slug, fields) {
 export async function adminDeleteFirm(adminToken, slug) {
   return callFunction('firm-admin', 'DELETE', { admin_token: adminToken, slug })
 }
+
+/** Marketing: submit a prospect inquiry from the homepage. */
+export async function submitProspect({ name, email, phone, firm_name, interest, message, source }) {
+  return callFunction('submit-prospect', 'POST', { name, email, phone, firm_name, interest, message, source })
+}
+
+/** Admin: list all prospects. */
+export async function adminListProspects(adminToken) {
+  return callFunction('prospect-admin', 'GET', null, `?admin_token=${encodeURIComponent(adminToken)}`)
+}
+
+/** Admin: update prospect status. */
+export async function adminUpdateProspect(adminToken, id, fields) {
+  return callFunction('prospect-admin', 'PUT', { admin_token: adminToken, id, ...fields })
+}
+
