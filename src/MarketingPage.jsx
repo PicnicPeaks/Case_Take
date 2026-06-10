@@ -1,50 +1,34 @@
 import { useState } from 'react'
 
-const NAVY   = '#1a2e4a'
-const GOLD   = '#f59e0b'
-const GOLD2  = '#d97706'
+const NAVY    = '#1a2e4a'
+const GOLD    = '#f59e0b'
+const GOLD2   = '#d97706'
+const PURPLE  = '#7c3aed'
+const PURPLE2 = '#6d28d9'
+const PURPLEBG = '#f5f3ff'
 
 // ── Tiny helpers ───────────────────────────────────────────────────────────────
 
-function Btn({ href, onClick, primary, large, children, style = {} }) {
-  const base = {
-    display: 'inline-flex', alignItems: 'center', gap: 7,
-    fontFamily: "system-ui,-apple-system,'Segoe UI',sans-serif",
-    fontWeight: 700, textDecoration: 'none', cursor: 'pointer', border: 'none',
-    borderRadius: large ? 12 : 9,
-    padding: large ? '15px 34px' : '11px 24px',
-    fontSize: large ? 16 : 14,
-    transition: 'all 0.18s',
-    ...style,
-  }
-  const colors = primary
-    ? { background: GOLD, color: '#111' }
-    : { background: 'rgba(255,255,255,0.1)', color: 'white', border: '1.5px solid rgba(255,255,255,0.25)' }
-  const el = href
-    ? <a href={href} style={{ ...base, ...colors }}>{children}</a>
-    : <button onClick={onClick} style={{ ...base, ...colors }}>{children}</button>
-  return el
-}
-
-function Tag({ children }) {
+function Tag({ children, color }) {
+  const c = color ?? GOLD2
+  const bg = color ? `${color}18` : `${GOLD}22`
+  const border = color ? `${color}40` : `${GOLD}44`
   return (
     <span style={{
-      display: 'inline-block', background: `${GOLD}22`, color: GOLD2,
-      border: `1px solid ${GOLD}44`, borderRadius: 20,
+      display: 'inline-block', background: bg, color: c,
+      border: `1px solid ${border}`, borderRadius: 20,
       padding: '4px 14px', fontSize: 12, fontWeight: 700,
       letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 18,
     }}>{children}</span>
   )
 }
 
-// ── Feature card ───────────────────────────────────────────────────────────────
-
-function Feature({ icon, title, body }) {
+function Feature({ icon, title, body, accent }) {
   return (
     <div style={{
-      background: 'white', borderRadius: 14,
-      padding: '26px 24px',
-      border: '1px solid #e5e7eb',
+      background: 'white', borderRadius: 14, padding: '26px 24px',
+      border: `1px solid ${accent ? `${accent}30` : '#e5e7eb'}`,
+      borderTop: accent ? `3px solid ${accent}` : '1px solid #e5e7eb',
       boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
     }}>
       <div style={{ fontSize: 28, marginBottom: 14 }}>{icon}</div>
@@ -53,8 +37,6 @@ function Feature({ icon, title, body }) {
     </div>
   )
 }
-
-// ── Step ───────────────────────────────────────────────────────────────────────
 
 function Step({ n, title, body }) {
   return (
@@ -70,13 +52,32 @@ function Step({ n, title, body }) {
   )
 }
 
-// ── Stat ───────────────────────────────────────────────────────────────────────
-
 function Stat({ value, label }) {
   return (
     <div style={{ textAlign: 'center', padding: '0 24px' }}>
       <div style={{ fontWeight: 900, fontSize: 38, color: NAVY, letterSpacing: '-1.5px', lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, fontWeight: 500 }}>{label}</div>
+    </div>
+  )
+}
+
+// ── SIBTF checklist item ───────────────────────────────────────────────────────
+
+function CheckItem({ children, status = 'done' }) {
+  const colors = {
+    done:    { bg: '#f0fdf4', border: '#bbf7d0', dot: '#16a34a', text: '#15803d' },
+    missing: { bg: '#fef2f2', border: '#fecaca', dot: '#dc2626', text: '#dc2626' },
+    neutral: { bg: '#f8fafc', border: '#e5e7eb', dot: '#9ca3af', text: '#374151' },
+  }
+  const c = colors[status]
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      background: c.bg, border: `1px solid ${c.border}`,
+      borderRadius: 8, padding: '8px 14px', fontSize: 13,
+    }}>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+      <span style={{ color: c.text, fontWeight: 600 }}>{children}</span>
     </div>
   )
 }
@@ -98,7 +99,7 @@ export default function MarketingPage() {
       <style>{`
         * { box-sizing: border-box; }
         @keyframes floatUp { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: translateY(0) } }
-        .hero-in { animation: floatUp 0.7s ease both; }
+        .hero-in   { animation: floatUp 0.7s ease both; }
         .hero-in-2 { animation: floatUp 0.7s 0.15s ease both; }
         .hero-in-3 { animation: floatUp 0.7s 0.3s ease both; }
         .feature-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important; transition: all 0.2s; }
@@ -119,6 +120,11 @@ export default function MarketingPage() {
           <span style={{ fontWeight: 900, fontSize: 18, color: NAVY, letterSpacing: '-0.5px' }}>CaseTake</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <a href="#sibtf" style={{
+            color: PURPLE, fontWeight: 700, fontSize: 13, textDecoration: 'none',
+            padding: '6px 14px', borderRadius: 8, background: PURPLEBG,
+            border: `1px solid ${PURPLE}30`, transition: 'all 0.15s',
+          }}>🏛️ SIBTF Intake</a>
           <a href="/demo" style={{
             color: '#6b7280', fontWeight: 600, fontSize: 13.5, textDecoration: 'none',
             padding: '7px 16px', borderRadius: 8, transition: 'background 0.15s',
@@ -166,15 +172,13 @@ export default function MarketingPage() {
         padding: 'clamp(72px,12vw,120px) clamp(20px,5vw,80px)',
         textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
-        {/* Background decoration */}
         <div style={{
           position: 'absolute', inset: 0, opacity: 0.04,
           backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          pointerEvents: 'none',
+          backgroundSize: '40px 40px', pointerEvents: 'none',
         }} />
 
-        <div style={{ position: 'relative', maxWidth: 800, margin: '0 auto' }}>
+        <div style={{ position: 'relative', maxWidth: 820, margin: '0 auto' }}>
           <div className="hero-in">
             <Tag>California Workers' Compensation</Tag>
           </div>
@@ -187,12 +191,40 @@ export default function MarketingPage() {
           </h1>
           <p className="hero-in-3" style={{
             color: 'rgba(255,255,255,0.72)', fontSize: 'clamp(15px,2vw,19px)',
-            lineHeight: 1.7, margin: '0 auto 40px', maxWidth: 580,
+            lineHeight: 1.7, margin: '0 auto 36px', maxWidth: 600,
           }}>
-            CaseTake qualifies workers' comp clients in under 10 minutes —
-            AI-scored, red-flag-flagged, and synced to Fluent Case on approval.
-            No intake calls. No wasted consults.
+            CaseTake handles both workers' comp intake and SIBTF information gathering —
+            structured, bilingual, and built for California workers' compensation firms.
           </p>
+
+          {/* Product pills */}
+          <div className="hero-in-3" style={{
+            display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 36,
+          }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 10, padding: '10px 20px',
+            }}>
+              <span style={{ fontSize: 18 }}>⚖️</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ color: 'white', fontWeight: 700, fontSize: 13.5, lineHeight: 1.2 }}>Workers' Comp Intake</div>
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11.5 }}>AI-scored · Red flags · Fluent Case sync</div>
+              </div>
+            </div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: `${PURPLE}44`, border: `1px solid ${PURPLE}88`,
+              borderRadius: 10, padding: '10px 20px',
+            }}>
+              <span style={{ fontSize: 18 }}>🏛️</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ color: 'white', fontWeight: 700, fontSize: 13.5, lineHeight: 1.2 }}>SIBTF Information Gathering</div>
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11.5 }}>Document checklist · Bilingual · Auto-report</div>
+              </div>
+            </div>
+          </div>
+
           <div className="hero-in-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href="/demo" className="demo-btn" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -220,13 +252,13 @@ export default function MarketingPage() {
         padding: '40px clamp(20px,5vw,80px)',
       }}>
         <div style={{
-          maxWidth: 900, margin: '0 auto',
+          maxWidth: 1000, margin: '0 auto',
           display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 28,
         }}>
           <Stat value="< 10 min" label="Average intake completion" />
-          <Stat value="4 tiers"  label="Viability scoring: Strong → Declined" />
-          <Stat value="2 langs"  label="English & Spanish, no extra setup" />
-          <Stat value="1 click"  label="Accept → matter created in Fluent Case" />
+          <Stat value="2 flows"  label="Workers' comp + SIBTF" />
+          <Stat value="2 langs"  label="English & Spanish, built-in" />
+          <Stat value="1 click"  label="Accept → matter in Fluent Case" />
         </div>
       </section>
 
@@ -239,16 +271,16 @@ export default function MarketingPage() {
         <p style={{ color: '#6b7280', fontSize: 15, marginBottom: 56, lineHeight: 1.65 }}>
           No phone tag. No 30-minute consultations for cases you'll decline anyway.
         </p>
-        <div style={{ display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap', maxWidth: 900, margin: '0 auto', position: 'relative' }}>
+        <div style={{ display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap', maxWidth: 900, margin: '0 auto' }}>
           <Step n="1"
             title="Client completes intake"
-            body="A guided, conversational AI interview collects injury details, employment type, medical history, and jurisdiction — in English or Spanish." />
+            body="A guided interview collects injury details, employment type, medical history, and jurisdiction — in English or Spanish. SIBTF clients follow a dedicated structured checklist." />
           <Step n="2"
-            title="AI scores viability"
-            body="Every intake gets a viability score (Strong / Moderate / Weak / Declined), red-flag analysis, and a full attorney-ready report. Instantly." />
+            title="Instant attorney report"
+            body="Workers' comp intakes get a viability score, red-flag analysis, and full report. SIBTF intakes surface exactly which documents are in hand and which still need to be gathered." />
           <Step n="3"
             title="One click to Fluent Case"
-            body="Review the report, hit Accept, and the matter is created in Fluent Case automatically. Reject with a reason in two clicks." />
+            body="Review the report, hit Accept, and the matter is created in Fluent Case automatically. Reject in two clicks. SIBTF cases are marked complete when the file is ready." />
         </div>
       </section>
 
@@ -261,26 +293,136 @@ export default function MarketingPage() {
               Everything your firm needs
             </h2>
           </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 20,
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
             {[
-              ['🤖', 'AI-Powered Intake', 'Conversational AI guides every client through a thorough, attorney-designed screening — no form fatigue, no missed fields.'],
-              ['📊', 'Viability Scoring', 'Every case scores Strong, Moderate, Weak, or Declined based on injury details, employment type, jurisdiction, and legal timeline.'],
-              ['🚩', 'Red Flag Detection', 'Automatic flags for missed deadlines, representation conflicts, jurisdiction issues, and low-merit patterns — before you spend a minute reviewing.'],
-              ['🔗', 'Fluent Case Integration', 'Accept a case and a fully-populated matter appears in Fluent Case instantly. Applicant, employer, injury date, contact info — all mapped.'],
-              ['🏢', 'White-Label for Your Firm', 'Your logo, your colors, your domain. Clients never see "CaseTake" — they see your brand from first click to confirmation.'],
-              ['🌎', 'Bilingual by Default', 'Every question, every response, every report — available in English and Spanish. No extra configuration.'],
-              ['📧', 'Instant Email Reports', 'Every completed intake triggers a branded email to your team with the full AI report and a one-click Accept / Reject link.'],
-              ['⚡', 'Zero Phone Time', 'Clients complete intake on their own time from any device. Your team reviews reports async — no scheduling, no callbacks.'],
-              ['🔒', 'Firm-Level Access Control', 'Password-protected dashboards and case views. Each firm gets their own isolated intake, dashboard, and settings.'],
-            ].map(([icon, title, body]) => (
+              ['🏛️', 'SIBTF Information Gathering', 'A structured multi-step intake for Subsequent Injuries Benefits Trust Fund cases — covering SSA status, pension, CalPERS, MVA settlements, and 10-year work history. Every field your attorney needs.', PURPLE],
+              ['📋', 'SIBTF Document Checklist', 'At completion, CaseTake automatically identifies which documents are in hand and which are still missing — SSDI award notices, benefit verification letters, pension releases, CalPERS forms. No more chasing.', PURPLE],
+              ['🤖', 'AI-Powered W/C Intake', "Conversational AI guides workers' comp clients through a thorough screening — injury details, employment type, medical history, jurisdiction — no form fatigue, no missed fields.", null],
+              ['📊', 'Viability Scoring', "Every workers' comp case scores Strong, Moderate, Weak, or Declined based on injury details, employment type, jurisdiction, and legal timeline.", null],
+              ['🚩', 'Red Flag Detection', 'Automatic flags for missed deadlines, representation conflicts, jurisdiction issues, and low-merit patterns — before you spend a minute reviewing.', null],
+              ['🔗', 'Fluent Case Integration', "Accept a workers' comp intake and a fully-populated matter appears in Fluent Case instantly. Applicant, employer, injury date, contact info — all mapped.", null],
+              ['🏢', 'White-Label for Your Firm', 'Your logo, your colors, your domain. Clients see your brand from first click to confirmation — on both intake flows.', null],
+              ['🌎', 'Bilingual by Default', "Both workers' comp and SIBTF intakes are available in English and Spanish. No extra setup.", null],
+              ['📧', 'Instant Email Reports', 'Every completed intake triggers a branded email to your team — full report with a one-click link to review, accept, or mark complete.', null],
+            ].map(([icon, title, body, accent]) => (
               <div key={title} className="feature-card" style={{ transition: 'all 0.2s' }}>
-                <Feature icon={icon} title={title} body={body} />
+                <Feature icon={icon} title={title} body={body} accent={accent} />
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SIBTF section ── */}
+      <section id="sibtf" style={{
+        background: `linear-gradient(135deg, #1e1254 0%, #2d1f6e 50%, #3b1fa8 100%)`,
+        padding: 'clamp(72px,10vw,112px) clamp(20px,5vw,80px)',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Background glow */}
+        <div style={{
+          position: 'absolute', top: -120, right: -120,
+          width: 500, height: 500, borderRadius: '50%',
+          background: `radial-gradient(circle, ${PURPLE}44 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: 72, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+            {/* Left: copy */}
+            <div style={{ flex: '1 1 380px', maxWidth: 520 }}>
+              <Tag color={PURPLE}>SIBTF Intake</Tag>
+              <h2 style={{
+                fontWeight: 900, fontSize: 'clamp(28px,4vw,44px)', color: 'white',
+                letterSpacing: '-1.5px', lineHeight: 1.1, marginBottom: 20,
+              }}>
+                High-value cases deserve a<br />
+                <span style={{ color: '#c4b5fd' }}>better first intake.</span>
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1.75, marginBottom: 28 }}>
+                SIBTF cases are among the most valuable in workers' compensation —
+                and the most document-intensive. CaseTake's dedicated SIBTF intake
+                walks every client through a structured, guided session that captures
+                everything up front.
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1.75, marginBottom: 36 }}>
+                No more showing up to the first call without a complete picture.
+                Your attorney receives a structured report the moment the client submits —
+                with a clear list of what's in hand and what still needs to be collected.
+              </p>
+
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <a href="mailto:hello@picnicpeaks.com" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: PURPLE, color: 'white', fontWeight: 800, fontSize: 15,
+                  textDecoration: 'none', padding: '14px 30px', borderRadius: 11,
+                  boxShadow: `0 4px 20px ${PURPLE}88`,
+                }}>
+                  Get SIBTF for your firm →
+                </a>
+              </div>
+            </div>
+
+            {/* Right: what it captures */}
+            <div style={{ flex: '1 1 320px', maxWidth: 440 }}>
+
+              {/* Steps covered */}
+              <div style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 16, padding: '24px 26px', marginBottom: 20,
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16,
+                }}>What the intake covers</div>
+                {[
+                  ['👤', 'Client & legal status', 'Name, DOI, claim number, residency'],
+                  ['🏛️', 'Social Security / SSDI', 'Current status, award notices, 1099s, benefit rate'],
+                  ['💰', 'Pension & CalPERS', 'Receiving pension, release signatures, member status'],
+                  ['🚗', 'MVA settlements', 'Prior third-party recoveries that affect SIBTF math'],
+                  ['💼', 'Work history', '10-year employment record, schedule, new injuries'],
+                ].map(([icon, title, sub]) => (
+                  <div key={title} style={{
+                    display: 'flex', gap: 12, alignItems: 'flex-start',
+                    paddingBottom: 12, marginBottom: 12,
+                    borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  }}>
+                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                    <div>
+                      <div style={{ color: 'white', fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{title}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>{sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Document status preview */}
+              <div style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 16, padding: '24px 26px',
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16,
+                }}>Attorney report: document status</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <CheckItem status="done">SSDI Award Notice — has it</CheckItem>
+                  <CheckItem status="missing">Benefit Verification Letter — missing</CheckItem>
+                  <CheckItem status="done">SSDI 1099s — has it</CheckItem>
+                  <CheckItem status="missing">Pension Release — must sign</CheckItem>
+                  <CheckItem status="missing">Undated CalPERS Release — must sign</CheckItem>
+                </div>
+                <div style={{
+                  marginTop: 14, padding: '10px 14px',
+                  background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
+                  fontSize: 12.5, color: '#dc2626', fontWeight: 600,
+                }}>
+                  ⚠️ 3 documents / signatures still needed
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       </section>
@@ -296,9 +438,8 @@ export default function MarketingPage() {
             Built for Fluent Case users
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1.7, marginBottom: 36 }}>
-            Accept an intake and a fully-structured matter is created in Fluent Case automatically —
+            Accept a workers' comp intake and a fully-structured matter is created in Fluent Case automatically —
             applicant contact, employer, date of injury, case type. No copy-paste, no data entry.
-            Just a great new client file, ready to go.
           </p>
           <div style={{
             background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
@@ -356,12 +497,11 @@ export default function MarketingPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 18 }}>⚖️</span>
           <span style={{ color: 'white', fontWeight: 800, fontSize: 15 }}>CaseTake</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 8 }}>
-            by Picnic Peaks LLC
-          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 8 }}>by Picnic Peaks LLC</span>
         </div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-          <a href="/demo" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
+          <a href="/demo"  style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Try Demo</a>
+          <a href="#sibtf" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>SIBTF Intake</a>
           <a href="mailto:hello@picnicpeaks.com" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}>Contact</a>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
